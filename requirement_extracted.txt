@@ -1,0 +1,314 @@
+﻿Đ�? T�?I: Xây dựng website quản lý bán hàng cho ti�?m hoa ép khô Dear Floral
+Xây dựng website vì có cả trang frontpage gi�>i thi�?u và bán hoa khô
+CHƯƠNG 1. T�"NG QUAN V�? ĐƠN V�S THỰC TẬP V�? Đ�? T�?I NGHI�SN CỨU
+1.1. T�.ng quan �'ơn v�< thực tập
+1.1.1. Gi�>i thi�?u chung
+1.1.2. L�<ch sử hình thành và phát tri�fn
+1.1.3. Sứ m�?nh, tầm nhìn và chiến lược
+1.1.4. Cơ cấu t�. chức
+1.1.5. H�? sinh thái Giải pháp và Sản phẩm tiêu bi�fu
+1.2. Gi�>i thi�?u về Ti�?m hoa ép khô Dear Floral
+1.2.1. Gi�>i thi�?u chung
+1.2.2. Sứ m�?nh, tầm nhìn và giá tr�< c�'t lõi của cửa hàng
+1.2.3. Sản phẩm, d�<ch vụ
+1.2.4. Cơ cấu t�. chức
+1.2.5. Phân tích hi�?n trạng ứng dụng công ngh�? trong quản lý
+1.3. T�.ng quan về �'ề tài nghiên cứu
+1.3.1. Lý do lựa chọn �'ề tài
+1.3.2. Đ�'i tượng và phạm vi nghiên cứu
+1.3.3. Đ�'i tượng hư�Yng lợi từ �'ề tài
+1.3.4. Mục tiêu nghiên cứu
+1.3.5. Phương pháp nghiên cứu
+CHƯƠNG 2. PHƯƠNG PHÁP LUẬN V�? CÁC C�"NG CỤ THỰC HI�?N
+2.1. Cơ s�Y lý thuyết
+2.1.1. Phần mềm (?)
+2.1.2. T�.ng quan về Website
+2.1.3. Kiến thức về lập trình Web
+2.2.Quy trình phát tri�fn website
+2.3. Các công cụ thực hi�?n �'ề tài
+2.3.1. Visual Studio Code (VS Code)
+2.3.2. Draw.io (diagrams.net)
+2.3.3. H�? quản tr�< cơ s�Y dữ li�?u PostgreSQL
+2.3.4. Node.js và npm (Node Package Manager)
+CHƯƠNG 3. PH�,N TÍCH V�? THIẾT KẾ ỨNG DỤNG WEB QUẢN LÝ BÁN H�?NG CHO TI�?M HOA �?P KH�" DEAR FLORAL
+3.1 Khảo sát thực tế và xác �'�<nh yêu cầu h�? th�'ng
+3.1.1. Khảo sát bài toán thực tế
+3.1.2. Yêu cầu chức n�fng
+3.1.3. Yêu cầu phi chức n�fng
+3.2. Phân tích h�? th�'ng
+3.2.1. Sơ �'�" phân rã chức n�fng BFD
+3.2.2. Sơ �'�" lu�"ng thông tin IFD
+3.2.3. Sơ �'�" ngữ cảnh CD
+3.2.4. Sơ �'�" lu�"ng dữ li�?u DFD
+3.3. Thiết kế cơ s�Y dữ li�?u
+3.4. Thiết kế giao di�?n
+3.5. Tri�fn khai và bảo trì
+CHƯƠNG 1. T�"NG QUAN V�? ĐƠN V�S THỰC TẬP V�? Đ�? T�?I NGHI�SN CỨU\
+1.1. T�.ng quan �'ơn v�< thực tập
+1.1.1. Gi�>i thi�?u chung
+1.1.2. L�<ch sử hình thành và phát tri�fn
+1.1.3. Sứ m�?nh, tầm nhìn và chiến lược
+1.1.4. Cơ cấu t�. chức
+1.1.5. H�? sinh thái Giải pháp và Sản phẩm tiêu bi�fu
+1.2. Gi�>i thi�?u về Ti�?m hoa ép khô Dear Floral
+1.2.1. Gi�>i thi�?u chung
+Hình 1.2: Logo của Dear Floral
+Ngu�"n: Dear Floral - Ti�?m hoa ép khô, 2026
+Tên thương hi�?u: Dear Floral - Ti�?m hoa ép khô
+Lĩnh vực hoạt �'�Tng: Thiết kế, sản xuất và kinh doanh các sản phẩm hoa ép khô thủ công, quà tặng lưu ni�?m và trang trí ngh�? thuật.
+N�fm thành lập: 2022
+Người �'ại di�?n: Bà Nguy�.n Hương Giang
+Email: dearfloral2022@gmail.com
+Cơ s�Y 1: 9 ngõ 91 Lương Đ�<nh Của, Đ�'ng Đa, Hà N�Ti
+Cơ s�Y 2: 153/18 Đường Cao Thắng, Phường 11, Quận 10, H�" Chí Minh
+Dear Floral là thương hi�?u thủ công chuyên về hoa ép khô ngh�? thuật, ra �'ời v�>i mục tiêu lưu giữ những ký ức �'ẹp của khách hàng thông qua các sản phẩm hoa mang giá tr�< thẩm mỹ và tinh thần. Thương hi�?u tập trung vào vi�?c chuy�fn hóa những bó hoa kỷ ni�?m như hoa cư�>i, hoa t�'t nghi�?p, hoa sinh nhật, hoa tặng người thân thành các tác phẩm hoa ép khô có th�f bảo quản lâu dài, giúp khách hàng gìn giữ trọn vẹn cảm xúc của những khoảnh khắc quan trọng trong cu�Tc �'ời.
+Dear Floral không ch�? �'ơn thuần cung cấp sản phẩm trang trí mà còn tạo ra các tác phẩm thủ công mang giá tr�< cảm xúc sâu sắc. M�-i sản phẩm tại Dear Floral �'ều �'ược thực hi�?n hoàn toàn thủ công, trải qua nhiều công �'oạn như xử lý, ép, sấy, ph�'i b�' cục và hoàn thi�?n, �'òi hỏi sự t�? m�?, khéo léo và sáng tạo của người thợ.
+1.2.2. Sứ m�?nh, tầm nhìn và giá tr�< c�'t lõi của cửa hàng
+Tầm nhìn
+Tr�Y thành thương hi�?u hoa ép khô thủ công uy tín, �'ược khách hàng lựa chọn khi có nhu cầu lưu giữ kỷ ni�?m và tìm kiếm những sản phẩm mang giá tr�< tinh thần.
+Sứ m�?nh
+Dear Floral ra �'ời v�>i sứ m�?nh là nơi biến bó hoa của khách hàng thành những kỷ ni�?m vô giá và trường t�"n theo thời gian. Thương hi�?u không ch�? cung cấp sản phẩm mà còn trân trọng từng cảm xúc gắn liền v�>i những bó hoa kỷ ni�?m, mang �'ến giải pháp lưu giữ ký ức bền vững, góp phần nâng cao giá tr�< cảm xúc của những dấu m�'c quan trọng cho m�-i khách hàng.
+Giá tr�< c�'t lõi
+Thủ công: M�-i sản phẩm �'ược thực hi�?n bằng tay v�>i sự t�? m�? cao.
+Sáng tạo: Luôn �'�.i m�>i trong thiết kế và cách th�f hi�?n.
+Cá nhân hóa: M�-i sản phẩm gắn v�>i câu chuy�?n riêng của khách hàng.
+Chất lượng: Đảm bảo tính bền vững và thẩm mỹ lâu dài.
+1.2.3. Sản phẩm, d�<ch vụ
+Sản phẩm
+Tranh hoa ép khô ngh�? thuật
+Khung hoa lưu ni�?m (hoa cư�>i, hoa t�'t nghi�?p, hoa kỷ ni�?m)
+Quà tặng hoa thủ công theo yêu cầu
+Sản phẩm trang trí từ hoa khô
+D�<ch vụ
+Nhận ép và bảo quản hoa kỷ ni�?m
+Thiết kế b�' cục theo câu chuy�?n của khách hàng
+Tư vấn phong cách và kích thư�>c sản phẩm
+Giao hàng và �'óng gói quà tặng
+1.2.4. Cơ cấu t�. chức
+1.2.5. Thực trạng ứng dụng công ngh�? trong quản lý
+Trong b�'i cảnh xu hư�>ng chuy�fn �'�.i s�' ngày càng phát tri�fn và yêu cầu ứng dụng công ngh�? thông tin trong hoạt �'�Tng kinh doanh tr�Y nên cấp thiết, Dear Floral bư�>c �'ầu �'ã tiếp cận các công cụ công ngh�? cơ bản nhằm phục vụ hoạt �'�Tng bán hàng và quản lý. Hi�?n nay, ti�?m �'ã trang b�< các thiết b�< v�fn phòng cơ bản như máy tính, �'i�?n thoại thông minh và sử dụng các phần mềm ph�. biến như Word, Excel �'�f ghi nhận và lưu trữ thông tin �'ơn hàng, khách hàng.
+Về kênh bán hàng và tiếp nhận �'ơn
+Dear Floral hi�?n chủ yếu tiếp nhận �'ơn hàng thông qua các nền tảng mạng xã h�Ti như Facebook, TikTok và Instagram. Khách hàng liên h�? trực tiếp qua tin nhắn �'�f gửi hình ảnh, thông tin và yêu cầu sản phẩm.Bên cạnh �'ó, ti�?m có xây dựng website gi�>i thi�?u, tuy nhiên website này m�>i ch�? dừng lại �Y vai trò cung cấp thông tin cơ bản như hình ảnh sản phẩm, mô tả d�<ch vụ và thông tin liên h�?, chưa tích hợp chức n�fng �'ặt hàng trực tuyến hay theo dõi �'ơn hàng. Do �'ó, toàn b�T quá trình trao �'�.i, xác nhận �'ơn và cập nhật trạng thái vẫn �'ược thực hi�?n thủ công qua tin nhắn.
+Về quản lý �'ơn hàng và dữ li�?u n�Ti b�T
+Các �'ơn hàng sau khi tiếp nhận sẽ �'ược nhân viên t�.ng hợp lại vào các bảng tính Excel �'�f theo dõi. Vi�?c quản lý hi�?n nay chưa có sự liên kết giữa các dữ li�?u như:
+Thông tin khách hàng
+Tình trạng �'ơn hàng
+Thời gian giao
+Trạng thái thanh toán
+Các bảng tính chưa �'ược thiết kế theo m�Tt cấu trúc th�'ng nhất, dẫn �'ến vi�?c tra cứu, cập nhật và t�.ng hợp s�' li�?u phải thực hi�?n thủ công, t�'n nhiều thời gian và d�. phát sinh sai sót.
+Về h�? th�'ng thông tin quản lý t�.ng th�f
+Hi�?n tại, Dear Floral chưa có m�Tt h�? th�'ng quản lý bán hàng chuyên nghi�?p hay cơ s�Y dữ li�?u tập trung �'�f lưu trữ và kết n�'i thông tin giữa các khâu bán hàng - sản xuất - giao hàng - doanh thu. Các báo cáo như s�' lượng �'ơn theo thời gian, doanh thu theo tháng, tình trạng t�"n �'ơn, hi�?u suất bán hàng�?� �'ều phải t�.ng hợp thủ công từ nhiều file Excel khác nhau khi cần.
+Đánh giá chung
+Thực trạng trên cho thấy, mức �'�T ứng dụng công ngh�? thông tin tại Dear Floral hi�?n m�>i �Y giai �'oạn cơ bản, chủ yếu phục vụ giao tiếp và ghi chép thủ công, chưa hình thành m�Tt h�? th�'ng quản lý bán hàng th�'ng nhất. Điều này gây khó kh�fn trong vi�?c theo dõi dữ li�?u, ki�fm soát tiến �'�T �'ơn hàng và ra quyết �'�<nh quản lý.Đ�"ng thời, �'ây cũng chính là cơ s�Y thực ti�.n cho vi�?c xây dựng m�Tt website quản lý bán hàng tích hợp, nhằm chuẩn hóa quy trình, giảm phụ thu�Tc vào thao tác thủ công và nâng cao hi�?u quả vận hành của ti�?m.
+1.3. T�.ng quan về �'ề tài nghiên cứu
+1.3.1. Lý do lựa chọn �'ề tài
+Hi�?n nay, vi�?c ứng dụng công ngh�? thông tin vào quản lý bán hàng �'óng vai trò quan trọng trong vi�?c nâng cao hi�?u quả hoạt �'�Tng và giảm thi�fu sai sót trong quá trình vận hành. Đ�'i v�>i các cơ s�Y kinh doanh thủ công như Dear Floral, vi�?c quản lý thông tin m�Tt cách khoa học và có h�? th�'ng là cần thiết nhằm �'ảm bảo tính chính xác và thuận ti�?n trong quá trình theo dõi và xử lý dữ li�?u.
+Do �'ó, vi�?c xây dựng m�Tt website quản lý bán hàng là giải pháp phù hợp, góp phần h�- trợ quản lý thông tin hi�?u quả, tiết ki�?m thời gian và nâng cao tính chuyên nghi�?p. Đây cũng là lý do �'ề tài �?oXây dựng website quản lý bán hàng cho ti�?m hoa ép khô Dear Floral�?� �'ược lựa chọn �'�f nghiên cứu và thực hi�?n.
+1.3.2. Đ�'i tượng và phạm vi nghiên cứu
+Đ�'i tượng nghiên cứu:
+Website quản lý bán hàng cho ti�?m hoa ép khô Dear Floral.
+Các quy trình nghi�?p vụ liên quan �'ến hoạt �'�Tng bán hàng, bao g�"m: Quản lý sản phẩm, tiếp nhận và xử lý �'ơn hàng, quản lý thông tin khách hàng và theo dõi trạng thái �'ơn hàng.
+Các tác nhân tham gia: Khách hàng, nhân viên, quản tr�< viên.
+Phạm vi nghiên cứu:
+Không gian: Tri�fn khai trong phạm vi các cơ s�Y của Dear Floral.
+Thời gian: Đề tài �'ược thực hi�?n trong thời gian từ tháng 01/2026 �'ến tháng 04/2026.
+1.3.3. Đ�'i tượng hư�Yng lợi từ �'ề tài
+Đ�'i v�>i Dear Floral:
+Website quản lý bán hàng giúp Dear Floral quản lý thông tin sản phẩm, khách hàng và �'ơn hàng m�Tt cách tập trung và khoa học. H�? th�'ng h�- trợ lưu trữ và tra cứu dữ li�?u nhanh chóng, giảm thi�fu sai sót so v�>i phương pháp quản lý thủ công. Ngoài ra, website còn h�- trợ theo dõi tình trạng �'ơn hàng, th�'ng kê doanh thu và quản lý hoạt �'�Tng bán hàng hi�?u quả hơn, góp phần nâng cao tính chuyên nghi�?p và t�'i ưu hóa quy trình vận hành của cửa hàng.
+Đ�'i v�>i khách hàng:
+Website cung cấp kênh chính thức giúp khách hàng d�. dàng xem thông tin sản phẩm, tham khảo các mẫu hoa ép khô và liên h�? �'ặt hàng. Điều này giúp khách hàng tiếp cận d�<ch vụ thuận ti�?n hơn, tiết ki�?m thời gian và nâng cao trải nghi�?m khi tìm hi�fu và lựa chọn sản phẩm của Dear Floral.
+Đ�'i v�>i người thực hi�?n �'ề tài:
+Vi�?c thực hi�?n �'ề tài giúp người nghiên cứu vận dụng kiến thức �'ã học vào thực tế, bao g�"m phân tích yêu cầu, thiết kế h�? th�'ng, xây dựng cơ s�Y dữ li�?u và phát tri�fn website. Qua �'ó, nâng cao kỹ n�fng chuyên môn, khả n�fng phân tích và giải quyết vấn �'ề, �'�"ng thời tích lũy kinh nghi�?m thực tế phục vụ cho công vi�?c sau này.
+1.3.4. Mục tiêu nghiên cứu
+Mục �'ích nghiên cứu
+Đề tài hư�>ng �'ến vi�?c phân tích, thiết kế và xây dựng website quản lý bán hàng phù hợp v�>i hoạt �'�Tng kinh doanh của Dear Floral. H�? th�'ng �'ược xây dựng nhằm h�- trợ s�' hóa quy trình quản lý thông tin sản phẩm, khách hàng và �'ơn hàng, góp phần nâng cao hi�?u quả quản lý, giảm thi�fu sai sót và cải thi�?n tính chuyên nghi�?p trong hoạt �'�Tng vận hành của cửa hàng.
+Mục tiêu cụ th�f
+Các mục tiêu cụ th�f của �'ề tài bao g�"m:
+Phân tích quy trình bán hàng và quản lý thông tin hi�?n tại của Dear Floral.
+Thiết kế h�? th�'ng website quản lý bán hàng phù hợp v�>i nhu cầu thực tế của cửa hàng.
+Xây dựng các chức n�fng quản lý sản phẩm, khách hàng và �'ơn hàng trên nền tảng web.
+H�- trợ lưu trữ và tra cứu thông tin m�Tt cách nhanh chóng, chính xác và thuận ti�?n.
+Cung cấp chức n�fng theo dõi và th�'ng kê dữ li�?u, h�- trợ công tác quản lý và ra quyết �'�<nh.
+Góp phần nâng cao hi�?u quả quản lý và tính chuyên nghi�?p trong hoạt �'�Tng kinh doanh của Dear Floral.
+1.3.5. Phương pháp nghiên cứu (có th�f sửa)
+Đ�f �'ảm bảo tính khoa học và tính thực ti�.n của �'ề tài �?oXây dựng website quản lý bán hàng cho ti�?m hoa ép khô Dear Floral�?�, �'ề tài sử dụng kết hợp nhiều phương pháp nghiên cứu khác nhau, bao g�"m phương pháp thu thập thông tin, phương pháp phân tích h�? th�'ng và phương pháp mô hình hóa.
+Phương pháp thu thập và phân tích thông tin
+Đề tài tiến hành thu thập và phân tích các tài li�?u liên quan �'ến quy trình bán hàng, quản lý sản phẩm, quản lý khách hàng và �'ơn hàng tại Dear Floral. Các ngu�"n thông tin bao g�"m s�. sách, dữ li�?u lưu trữ và các tài li�?u mô tả quy trình làm vi�?c hi�?n tại. Vi�?c phân tích các tài li�?u này giúp xác �'�<nh các yêu cầu chức n�fng, những hạn chế của phương pháp quản lý thủ công và �'�<nh hư�>ng xây dựng h�? th�'ng phù hợp.
+Phương pháp quan sát và khảo sát thực tế
+Đề tài thực hi�?n quan sát quy trình bán hàng và quản lý tại Dear Floral nhằm hi�fu rõ cách thức hoạt �'�Tng, các bư�>c xử lý �'ơn hàng, cập nhật thông tin sản phẩm và tương tác v�>i khách hàng. Qua �'ó, xác �'�<nh các vấn �'ề còn t�"n tại và các yêu cầu cần thiết cho h�? th�'ng m�>i.
+Phương pháp phân tích và thiết kế h�? th�'ng
+Đề tài áp dụng phương pháp phân tích h�? th�'ng theo hư�>ng Top�?"Down, bắt �'ầu từ vi�?c xác �'�<nh chức n�fng t�.ng th�f của h�? th�'ng, sau �'ó phân rã thành các chức n�fng chi tiết như quản lý sản phẩm, quản lý khách hàng và quản lý �'ơn hàng. Đ�"ng thời, các công cụ mô hình hóa như Bi�fu �'�" ngữ cảnh (Context Diagram), Bi�fu �'�" phân rã chức n�fng (BFD) và Bi�fu �'�" lu�"ng dữ li�?u (DFD) �'ược sử dụng �'�f mô tả và thiết kế h�? th�'ng m�Tt cách trực quan và rõ ràng.
+Phương pháp xây dựng và thử nghi�?m h�? th�'ng
+Sau khi hoàn thành quá trình phân tích và thiết kế, �'ề tài tiến hành xây dựng website quản lý bán hàng và thử nghi�?m các chức n�fng của h�? th�'ng. Quá trình thử nghi�?m nhằm �'ảm bảo h�? th�'ng hoạt �'�Tng �'úng yêu cầu, d�. sử dụng và �'áp ứng nhu cầu quản lý thực tế của Dear Floral.
+Vi�?c kết hợp các phương pháp nghiên cứu trên giúp �'ảm bảo h�? th�'ng �'ược xây dựng có tính khoa học, tính thực ti�.n cao và phù hợp v�>i nhu cầu quản lý bán hàng của Dear Floral.
+CHƯƠNG 2. PHƯƠNG PHÁP LUẬN V�? CÁC C�"NG CỤ THỰC HI�?N
+2.1. Cơ s�Y lý thuyết
+2.1.1. Phần mềm (?)
+2.1.2. T�.ng quan về Website
+Khái ni�?m website
+Website là m�Tt tập hợp các trang web chứa n�Ti dung �'a dạng như v�fn bản, hình ảnh, video hoặc dữ li�?u s�', �'ược lưu trữ trên m�Tt máy chủ và có th�f truy cập thông qua mạng internet bằng m�Tt tên miền hoặc �'�<a ch�? IP cụ th�f. Đây là m�Tt công cụ quan trọng trong vi�?c truyền tải thông tin, giao tiếp và thực hi�?n các hoạt �'�Tng trực tuyến, �'ặc bi�?t là trong thời �'ại s�' hóa hi�?n nay.
+M�Tt website có th�f �'ược sử dụng v�>i nhiều mục �'ích khác nhau như gi�>i thi�?u doanh nghi�?p, mua bán sản phẩm, cung cấp d�<ch vụ, hay làm nền tảng cho giáo dục và giải trí. V�>i sự phát tri�fn của công ngh�?, các website không ch�? dừng lại �Y vi�?c cung cấp thông tin mà còn tương tác mạnh mẽ v�>i người dùng thông qua các tính n�fng thông minh, cá nhân hóa, và tích hợp trí tu�? nhân tạo.
+2.1.3. Kiến thức về lập trình Web
+2.2.Quy trình phát tri�fn website
+2.3. Các công cụ thực hi�?n �'ề tài
+2.3.1. Visual Studio Code (VS Code)
+Visual Studio Code (VS Code) là m�Tt trình soạn thảo mã ngu�"n mi�.n phí do Microsoft phát tri�fn, �'ược sử dụng r�Tng rãi trong lĩnh vực công ngh�? thông tin và phát tri�fn phần mềm. Công cụ này h�- trợ nhiều ngôn ngữ lập trình như HTML, CSS, JavaScript, Python, Java, C/C++, PHP,�?� phù hợp cho cả phát tri�fn web, ứng dụng và h�? th�'ng thông tin.
+VS Code có giao di�?n trực quan, nhẹ và d�. sử dụng, �'�"ng thời cung cấp nhiều tính n�fng mạnh mẽ như gợi ý mã thông minh (IntelliSense), tô màu cú pháp, ki�fm tra l�-i, gỡ l�-i (debug) và quản lý phiên bản v�>i Git. Bên cạnh �'ó, h�? th�'ng ti�?n ích m�Y r�Tng (extensions) phong phú cho phép người dùng tùy ch�?nh và m�Y r�Tng chức n�fng theo nhu cầu phát tri�fn.
+Nhờ tính linh hoạt, hi�?u n�fng cao và khả n�fng h�- trợ �'a nền tảng (Windows, macOS, Linux), Visual Studio Code là công cụ phù hợp cho sinh viên và lập trình viên trong quá trình học tập, nghiên cứu cũng như xây dựng các h�? th�'ng phần mềm, �'ặc bi�?t trong các �'ề tài thu�Tc lĩnh vực H�? th�'ng thông tin.
+2.3.2. Draw.io (diagrams.net)
+Draw.io (hay diagrams.net) là công cụ vẽ sơ �'�" trực quan mi�.n phí, mã ngu�"n m�Y, �'ược sử dụng ph�. biến trong học tập và công vi�?c. Công cụ này giúp người dùng trình bày ý tư�Yng, quy trình và h�? th�'ng m�Tt cách rõ ràng thông qua nhiều loại sơ �'�" khác nhau như flowchart, UML, ERD, sơ �'�" t�. chức, sơ �'�" mạng, bản �'�" tư duy hay kiến trúc h�? th�'ng.
+Draw.io có th�f sử dụng trực tiếp trên trình duy�?t mà không cần cài �'ặt hoặc �'�fng ký tài khoản, �'�"ng thời cũng cung cấp phiên bản cài �'ặt cho Windows, macOS và Linux �'�f làm vi�?c ngoại tuyến. Giao di�?n kéo-thả thân thi�?n, thư vi�?n hình kh�'i phong phú cùng các mẫu có sẵn giúp người m�>i d�. tiếp cận nhưng vẫn �'áp ứng t�'t nhu cầu nâng cao.
+M�Tt ưu �'i�fm n�.i bật của Draw.io là tính bảo mật và khả n�fng ki�fm soát dữ li�?u. Người dùng có th�f tự chọn nơi lưu trữ file như máy tính cá nhân hoặc các d�<ch vụ �'ám mây như Google Drive, OneDrive, Dropbox hay GitHub mà không b�< lưu dữ li�?u trên máy chủ của Draw.io. Ngoài ra, Draw.io h�- trợ xuất và nhập nhiều �'�<nh dạng t�?p khác nhau như PNG, JPG, PDF, SVG và XML, giúp vi�?c chia sẻ, in ấn và tích hợp vào tài li�?u, báo cáo tr�Y nên thuận ti�?n.
+V�>i các ưu �'i�fm về tính trực quan, d�. sử dụng và khả n�fng h�- trợ �'a dạng các loại sơ �'�", Draw.io là công cụ phù hợp trong quá trình phân tích và thiết kế h�? th�'ng cho �'ề tài khóa luận �?oXây dựng website quản lý bán hàng cho ti�?m hoa ép khô Dear Floral�?�. Công cụ này h�- trợ xây dựng các sơ �'�" nghi�?p vụ, sơ �'�" lu�"ng dữ li�?u, sơ �'�" chức n�fng, UML và mô hình kiến trúc h�? th�'ng, qua �'ó giúp làm rõ cấu trúc h�? th�'ng, các quy trình xử lý và m�'i quan h�? giữa các thành phần, góp phần nâng cao tính logic và tính khoa học của �'ề tài.
+�?��?��?��?��?��?��?��?��?��?�..
+CHƯƠNG 3. PH�,N TÍCH V�? THIẾT KẾ ỨNG DỤNG WEB QUẢN LÝ BÁN H�?NG CHO TI�?M HOA �?P KH�" DEAR FLORAL
+3.1 Khảo sát thực tế và xác �'�<nh yêu cầu h�? th�'ng
+3.1.1. Khảo sát bài toán thực tế
+Dear Floral là cửa hàng chuyên kinh doanh các sản phẩm thủ công từ hoa ép khô như tranh hoa ép khô ngh�? thuật, khung hoa lưu ni�?m (hoa cư�>i, hoa t�'t nghi�?p, hoa kỷ ni�?m), quà tặng hoa thủ công theo yêu cầu và các sản phẩm trang trí từ hoa khô. Hi�?n nay, hoạt �'�Tng bán hàng của cửa hàng chủ yếu �'ược thực hi�?n thông qua các nền tảng mạng xã h�Ti như Facebook, Instagram và các ứng dụng nhắn tin. Khi khách hàng có nhu cầu �'ặt sản phẩm, họ sẽ liên h�? trực tiếp v�>i cửa hàng �'�f �'ược tư vấn, sau �'ó nhân viên sẽ ghi nhận thông tin �'ơn hàng, yêu cầu thiết kế và thông tin khách hàng bằng phương pháp thủ công hoặc lưu trữ trên các file Excel.
+Tuy nhiên, phương pháp quản lý hi�?n tại còn nhiều hạn chế. Vi�?c lưu trữ thông tin �'ơn hàng, sản phẩm và khách hàng chưa �'ược tập trung, gây khó kh�fn trong vi�?c tìm kiếm, cập nhật và quản lý. Đặc bi�?t, các sản phẩm hoa ép khô thường mang tính cá nhân hóa cao, yêu cầu theo dõi chi tiết về mẫu thiết kế, thời gian thực hi�?n và yêu cầu riêng của từng khách hàng, nên vi�?c quản lý thủ công d�. dẫn �'ến nhầm lẫn hoặc thiếu sót thông tin. Ngoài ra, cửa hàng cũng gặp khó kh�fn trong vi�?c theo dõi s�' lượng �'ơn hàng, quản lý tiến �'�T thực hi�?n và th�'ng kê doanh thu do dữ li�?u �'ược lưu trữ rời rạc.
+Về phía khách hàng, vi�?c �'ặt hàng thông qua tin nhắn khiến họ khó theo dõi thông tin sản phẩm, giá cả và trạng thái �'ơn hàng. Khách hàng cũng không có m�Tt nền tảng chính thức �'�f tham khảo các mẫu sản phẩm hoặc gửi yêu cầu �'ặt hàng m�Tt cách thuận ti�?n và rõ ràng. Điều này ảnh hư�Yng �'ến trải nghi�?m khách hàng và hạn chế khả n�fng m�Y r�Tng hoạt �'�Tng kinh doanh của cửa hàng.
+Vì vậy, vi�?c xây dựng m�Tt h�? th�'ng website quản lý và gi�>i thi�?u sản phẩm cho Dear Floral là cần thiết. H�? th�'ng sẽ h�- trợ quản lý tập trung thông tin sản phẩm, khách hàng và �'ơn hàng, �'�"ng thời giúp khách hàng d�. dàng tham khảo sản phẩm và gửi yêu cầu �'ặt hàng. Vi�?c áp dụng h�? th�'ng không ch�? giúp nâng cao hi�?u quả quản lý, giảm sai sót mà còn góp phần cải thi�?n chất lượng d�<ch vụ và h�- trợ Dear Floral phát tri�fn bền vững trong tương lai.
+3.1.2. Yêu cầu chức n�fng
+H�? th�'ng website quản lý bán hàng cho Dear Floral g�"m hai phân h�? chính: Trang khách hàng và Trang quản tr�<.
+3.1.2.1. Chức n�fng trang khách hàng
+Trang khách hàng cho phép khách hàng xem thông tin sản phẩm và gửi yêu cầu �'ặt hàng, bao g�"m các chức n�fng sau:
+Quản lý tài khoản:
+Cho phép khách hàng �'�fng ký tài khoản m�>i bằng cách cung cấp các thông tin cơ bản như họ tên, s�' �'i�?n thoại, email và mật khẩu.
+Cho phép khách hàng �'�fng nhập và �'�fng xuất khỏi h�? th�'ng.
+Cho phép khách hàng ch�?nh sửa và cập nhật thông tin cá nhân khi cần thiết.
+Xem và tìm kiếm sản phẩm:
+Cho phép khách hàng xem danh sách các sản phẩm hoa ép khô có sẵn.
+Hi�fn th�< thông tin chi tiết sản phẩm như tên sản phẩm, mô tả, giá và hình ảnh minh họa.
+Cho phép khách hàng tìm kiếm sản phẩm theo tên hoặc loại sản phẩm.
+Đặt hàng:
+Cho phép khách hàng tạo �'ơn hàng �'�'i v�>i các sản phẩm có sẵn.
+Cho phép khách hàng gửi yêu cầu �'ặt sản phẩm theo thiết kế riêng (custom), bao g�"m các thông tin mô tả yêu cầu và thông tin liên h�?.
+Cho phép khách hàng xem lại thông tin các �'ơn hàng �'ã �'ặt.
+3.1.2.2. Chức n�fng trang quản tr�<
+Trang quản tr�< �'ược sử dụng b�Yi quản tr�< viên và nhân viên �'�f quản lý toàn b�T hoạt �'�Tng bán hàng của h�? th�'ng.
+Quản lý người dùng:
+H�? th�'ng h�- trợ quản lý thông tin và phân quyền người dùng, bao g�"m:
+Cho phép quản tr�< viên thêm m�>i, ch�?nh sửa, xóa tài khoản người dùng.
+Cho phép tìm kiếm và xem danh sách người dùng.
+Lưu trữ thông tin người dùng như họ tên, s�' �'i�?n thoại, email và vai trò.
+Phân quyền người dùng theo từng vai trò như quản tr�< viên, nhân viên và khách hàng.
+Quản lý sản phẩm:
+H�? th�'ng cho phép quản lý toàn b�T thông tin sản phẩm hoa ép khô, bao g�"m:
+Cho phép thêm m�>i, ch�?nh sửa, xóa thông tin sản phẩm.
+Lưu trữ thông tin sản phẩm như tên, mô tả, giá, hình ảnh và loại sản phẩm.
+Quản lý các sản phẩm có sẵn của cửa hàng.
+Quản lý các sản phẩm thiết kế theo yêu cầu (custom).
+Cho phép tìm kiếm và cập nhật trạng thái sản phẩm.
+Quản lý �'ặt hàng:
+H�? th�'ng h�- trợ quản lý các �'ơn hàng của khách hàng, bao g�"m:
+Cho phép xem danh sách và tìm kiếm �'ơn hàng.
+Lưu trữ thông tin �'ơn hàng như thông tin khách hàng, sản phẩm, s�' lượng, ngày �'ặt và trạng thái �'ơn hàng.
+Quản lý �'ơn hàng �'�'i v�>i sản phẩm có sẵn.
+Quản lý �'ơn hàng �'�'i v�>i sản phẩm thiết kế theo yêu cầu (custom).
+Cho phép cập nhật trạng thái �'ơn hàng như �'ã tiếp nhận, �'ang xử lý hoặc �'ã hoàn thành.
+Báo cáo �?" Th�'ng kê:
+Chức n�fng báo cáo h�- trợ quản tr�< viên theo dõi hoạt �'�Tng kinh doanh, bao g�"m:
+Cung cấp báo cáo t�.ng quan về tình hình hoạt �'�Tng của h�? th�'ng.
+Th�'ng kê doanh thu theo từng khoảng thời gian.
+Th�'ng kê s�' lượng �'ơn hàng �'ã tiếp nhận và xử lý.
+H�- trợ t�.ng hợp dữ li�?u phục vụ vi�?c theo dõi và �'ưa ra quyết �'�<nh quản lý.
+3.1.3. Yêu cầu phi chức n�fng
+Ngoài các yêu cầu chức n�fng, h�? th�'ng website quản lý bán hàng cho Dear Floral cần �'áp ứng các yêu cầu phi chức n�fng nhằm �'ảm bảo tính �.n �'�<nh, an toàn và hi�?u quả trong quá trình vận hành.
+3.1.3.1. Yêu cầu về hi�?u n�fng (Performance Requirements)
+H�? th�'ng phải �'ảm bảo thời gian phản h�"i nhanh, các thao tác như �'�fng nhập, tìm kiếm sản phẩm, xem danh sách sản phẩm hoặc �'ơn hàng phải �'ược xử lý trong thời gian ngắn.
+H�? th�'ng phải có khả n�fng xử lý �'�"ng thời nhiều người dùng truy cập mà không gây gián �'oạn hoặc giảm hi�?u suất �'áng k�f.
+Dữ li�?u phải �'ược truy xuất và cập nhật nhanh chóng, �'ảm bảo tính chính xác và k�<p thời.
+3.1.3.2. Yêu cầu về bảo mật (Security Requirements)
+H�? th�'ng phải yêu cầu người dùng �'�fng nhập bằng tài khoản và mật khẩu �'�f truy cập các chức n�fng quản tr�<.
+Thông tin tài khoản và dữ li�?u người dùng phải �'ược lưu trữ an toàn, tránh truy cập trái phép.
+H�? th�'ng phải phân quyền rõ ràng giữa các loại người dùng như quản tr�< viên, nhân viên và khách hàng.
+Ch�? người dùng có quyền quản tr�< m�>i �'ược phép thêm, sửa hoặc xóa dữ li�?u quan trọng như sản phẩm và �'ơn hàng.
+3.1.3.3. Yêu cầu về tính khả dụng (Usability Requirements)
+Giao di�?n h�? th�'ng phải thân thi�?n, d�. sử dụng và phù hợp v�>i người dùng không có nhiều kiến thức về công ngh�?.
+Các chức n�fng cần �'ược b�' trí rõ ràng, giúp người dùng d�. dàng thao tác và tìm kiếm thông tin.
+H�? th�'ng phải hoạt �'�Tng �.n �'�<nh trên các trình duy�?t ph�. biến như Google Chrome, Microsoft Edge hoặc Firefox.
+3.1.3.4. Yêu cầu về �'�T tin cậy (Reliability Requirements)
+H�? th�'ng phải �'ảm bảo hoạt �'�Tng �.n �'�<nh và liên tục trong quá trình sử dụng.
+Dữ li�?u phải �'ược lưu trữ chính xác và hạn chế t�'i �'a tình trạng mất dữ li�?u.
+H�? th�'ng phải �'ảm bảo tính toàn vẹn dữ li�?u trong quá trình thêm, sửa hoặc xóa thông tin.
+3.1.2.5. Yêu cầu về khả n�fng m�Y r�Tng (Scalability Requirements)
+H�? th�'ng phải �'ược thiết kế theo hư�>ng d�. dàng nâng cấp và m�Y r�Tng trong tương lai.
+Có khả n�fng b�. sung thêm các chức n�fng m�>i như thanh toán trực tuyến, quản lý kho hoặc tích hợp các nền tảng bán hàng khác.
+Có khả n�fng xử lý lượng dữ li�?u và s�' lượng người dùng t�fng lên theo thời gian.
+3.1.3.6. Yêu cầu về bảo trì và nâng cấp (Maintainability Requirements)
+H�? th�'ng phải �'ược thiết kế v�>i cấu trúc rõ ràng, d�. bảo trì và nâng cấp.
+Cho phép ch�?nh sửa, cập nhật chức n�fng mà không ảnh hư�Yng �'ến toàn b�T h�? th�'ng.
+Dữ li�?u phải �'ược t�. chức hợp lý, d�. dàng sao lưu và phục h�"i khi cần thiết.
+3.2. Phân tích h�? th�'ng
+3.2.1. Sơ �'�" phân rã chức n�fng BFD
+Website quản lý bán hàng cho ti�?m hoa ép khô Dear Floral �'ược xây dựng nhằm h�- trợ quản tr�< viên trong vi�?c quản lý toàn b�T hoạt �'�Tng kinh doanh, từ quản lý nhân sự, nhập nguyên vật li�?u, sản phẩm, bán hàng �'ến theo dõi và th�'ng kê hi�?u quả kinh doanh. H�? th�'ng �'ược chia thành 5 nhóm chức n�fng chính như sau:
+Quản lý danh mục (Nhân viên, khách hàng)
+Chức n�fng này tập trung vào vi�?c quản lý các �'�'i tượng tham gia trong h�? th�'ng.
+Chức n�fng này ch�<u trách nhi�?m quản lý thông tin tài khoản và phân quyền truy cập trong h�? th�'ng, �'ảm bảo tính bảo mật và ki�fm soát quyền hạn sử dụng.
+Quản lý nhân viên: Cho phép thêm m�>i, ch�?nh sửa và quản lý thông tin nhân viên trong h�? th�'ng.
+Quản lý khách hàng: Lưu trữ và quản lý thông tin khách hàng phục vụ cho vi�?c bán hàng và ch�fm sóc khách hàng.
+Quản lý nhập hàng
+Nhóm chức n�fng này �'ảm nhận vi�?c quản lý ngu�"n nguyên vật li�?u �'ầu vào phục vụ cho quá trình tạo sản phẩm.
+Quản lý phiếu nhập: Ghi nhận các lần nhập nguyên vật li�?u vào kho, bao g�"m s�' lượng, thời gian và nhà cung cấp.
+Ngu�"n cung của h�? th�'ng bao g�"m hai loại:
+(1) Ngu�"n n�Ti b�T là các sản phẩm có sẵn �'ược sản xuất trư�>c b�Yi cửa hàng;
+(2) Ngu�"n bên ngoài là các nguyên vật li�?u như khung, h�Tp �'ược nhập từ nhà cung cấp.
+H�? th�'ng quản lý chung các ngu�"n này thông qua chức n�fng quản lý nhập hàng nhằm �'ảm bảo ki�fm soát s�' lượng và phục vụ quá trình bán hàng.
+Quản lý sản phẩm
+Nhóm chức n�fng này cho phép quản lý toàn b�T thông tin liên quan �'ến các sản phẩm hoa ép khô của Dear Floral, bao g�"m sản phẩm có sẵn và sản phẩm thiết kế theo yêu cầu.
+Quản lý thông tin sản phẩm: Cho phép thêm m�>i, ch�?nh sửa, cập nhật hoặc xóa thông tin sản phẩm như tên sản phẩm, mô tả, hình ảnh, giá bán, kích thư�>c, chất li�?u khung, loại hoa sử dụng,�?�
+Phân loại sản phẩm: Phân loại sản phẩm theo hình thức kinh doanh, bao g�"m sản phẩm có sẵn và sản phẩm thiết kế theo yêu cầu (custom).
+Danh mục sản phẩm: Quản lý các nhóm sản phẩm theo �'ặc �'i�fm và mục �'ích sử dụng như khung tranh, h�Tp lưu ni�?m, sản phẩm trang trí,�?�
+Quản lý bán hàng
+Chức n�fng này �'ảm nhận vi�?c theo dõi và xử lý toàn b�T quá trình �'ặt hàng của khách hàng, bao g�"m cả sản phẩm có sẵn và sản phẩm thiết kế theo yêu cầu.
+Quản lý �'ơn bán hàng: Quản lý các �'ơn hàng �'�'i v�>i sản phẩm có sẵn, cho phép theo dõi thông tin �'ơn hàng, trạng thái xử lý (�'ang xử lý, �'ang giao, �'ã hoàn thành, hủy,�?�) và l�<ch sử giao d�<ch.
+Quản lý �'ặt hàng: Quản lý các �'ơn hàng theo yêu cầu (custom), trong �'ó khách hàng �'ặt sản phẩm dựa trên mẫu có sẵn (khung, h�Tp,�?�) và cung cấp nguyên li�?u (hoa). H�? th�'ng h�- trợ ghi nhận yêu cầu thiết kế, n�Ti dung cá nhân hóa và các thông tin liên quan.
+Quản lý giao nhận: Theo dõi toàn b�T quá trình giao nhận, bao g�"m vi�?c nhận hoa từ khách hàng �'�f thực hi�?n sản phẩm custom và giao thành phẩm hoàn thi�?n �'ến khách hàng.
+Quản lý thanh toán: Quản lý các thông tin liên quan �'ến thanh toán của �'ơn hàng, bao g�"m hình thức thanh toán, trạng thái thanh toán và các khoản �'ặt cọc �'�'i v�>i �'ơn hàng custom.
+Báo cáo - Th�'ng kê
+Nhóm chức n�fng này h�- trợ quản tr�< viên theo dõi hi�?u quả hoạt �'�Tng kinh doanh và �'ưa ra các quyết �'�<nh phù hợp.
+Báo cáo t�.ng quan: Cung cấp cái nhìn t�.ng th�f về tình hình hoạt �'�Tng của h�? th�'ng như t�.ng s�' sản phẩm, t�.ng s�' �'ơn hàng, s�' �'ơn �'ang xử lý,�?�Mục �'ích của báo cáo t�.ng quan là cho người quản lý nhìn nhanh tình hình hoạt �'�Tng hi�?n tại của h�? th�'ng.
+Báo cáo doanh thu: Th�'ng kê doanh thu theo từng khoảng thời gian (ngày, tháng, n�fm) nhằm �'ánh giá hi�?u quả kinh doanh.
+Th�'ng kê �'ơn hàng: T�.ng hợp s�' lượng �'ơn hàng theo từng loại sản phẩm (có sẵn, custom) hoặc theo từng giai �'oạn cụ th�f, nhằm phân tích xu hư�>ng hoặc cơ cấu �'ơn hàng.
+3.2.2. Sơ �'�" lu�"ng thông tin IFD
+Sơ �'�" lu�"ng thông tin (IFD) là công cụ trực quan giúp mô tả cách dữ li�?u �'ược truyền tải và xử lý giữa các tác nhân như khách hàng, nhân viên và quản tr�< viên trong h�? th�'ng Website quản lý bán hàng của ti�?m hoa ép khô Dear Floral. Thông qua các sơ �'�" này, dòng chảy thông tin của từng nghi�?p vụ �'ược th�f hi�?n rõ ràng, từ bư�>c khách hàng thực hi�?n �'ặt hàng (sản phẩm có sẵn hoặc sản phẩm thiết kế theo yêu cầu), �'ến quá trình tiếp nhận, xử lý �'ơn hàng, cập nhật trạng thái và phản h�"i kết quả. Vi�?c xây dựng sơ �'�" IFD giúp �'ảm bảo quá trình thiết kế h�? th�'ng �'ược thực hi�?n m�Tt cách logic, nhất quán và sát v�>i quy trình vận hành thực tế.
+3.2.2.1. IFD quy trình �'ặt sản phẩm có sẵn
+Sơ �'�" lu�"ng thông tin quy trình �'ặt hàng sản phẩm có sẵn mô tả dòng chảy dữ li�?u giữa khách hàng, h�? th�'ng và nhân viên trong quá trình mua các sản phẩm hoa ép khô có sẵn trên website Dear Floral. Sơ �'�" IFD này th�f hi�?n rõ lu�"ng thông tin từ khi phát sinh nhu cầu mua hàng �'ến khi hoàn tất giao d�<ch, �'ảm bảo tính minh bạch và chính xác trong quá trình xử lý �'ơn hàng.
+Đầu tiên, khách hàng truy cập vào website và lựa chọn sản phẩm hoa ép khô có sẵn mà mình mong mu�'n. H�? th�'ng sẽ truy cập vào t�?p �'ơn hàng và hi�fn th�< thông tin chi tiết của sản phẩm cùng v�>i t�.ng s�' tiền cần thanh toán.
+Sau �'ó, khách hàng tiến hành �'ặt hàng. H�? th�'ng sẽ hi�fn th�< bi�fu mẫu thông tin nhận hàng �'�f khách hàng ki�fm tra và nhập các thông tin cần thiết như tên người nhận, s�' �'i�?n thoại và �'�<a ch�? giao hàng.
+Khi �'ã hoàn tất vi�?c nhập thông tin, h�? th�'ng sẽ hi�fn th�< mã QR �'�f khách hàng thực hi�?n thanh toán cho �'ơn hàng.
+Khách hàng tiến hành thanh toán, h�? th�'ng sẽ ki�fm tra trạng thái giao d�<ch:
+Nếu thanh toán thất bại, h�? th�'ng sẽ yêu cầu khách hàng thực hi�?n thanh toán lại.
+Nếu thanh toán thành công, h�? th�'ng sẽ hi�fn th�< thông báo �'ặt hàng thành công và lưu thông tin vào t�?p �'ơn hàng.
+Cu�'i cùng, h�? th�'ng gửi thông tin �'ơn hàng �'ến nhân viên cửa hàng �'�f tiến hành xác nhận �'ơn hàng và chuẩn b�< xử lý �'ơn hàng cho khách.
+3.2.2.2. IFD quy trình �'ặt sản phẩm quà tặng custom
+Sơ �'�" lu�"ng thông tin quy trình �'ặt hàng sản phẩm custom mô tả quá trình xử lý các �'ơn hàng thiết kế theo yêu cầu riêng của khách hàng, như khung hoa cư�>i, hoa t�'t nghi�?p hoặc quà tặng cá nhân hóa.
+Quy trình bắt �'ầu khi khách hàng lựa chọn sản phẩm custom trên h�? th�'ng và nhập các thông tin cần thiết như loại hoa, n�Ti dung cá nhân hóa và thời gian mong mu�'n nhận sản phẩm. Đ�"ng thời, khách hàng cung cấp hình ảnh hoa thực tế tại thời �'i�fm �'ặt hàng �'�f phục vụ cho quá trình thực hi�?n.
+Sau khi hoàn tất vi�?c nhập thông tin, khách hàng tiến hành �'ặt �'ơn và thực hi�?n thanh toán �'ặt cọc theo mức giá �'ã �'ược niêm yết sẵn trên h�? th�'ng. Thông tin �'ơn hàng và giao d�<ch thanh toán �'ược h�? th�'ng tiếp nhận, ki�fm tra và lưu trữ, �'�"ng thời cập nhật trạng thái �'ơn hàng.
+Sau bư�>c thanh toán, h�? th�'ng ghi nhận �'ơn hàng và thông báo �'ến nhân viên phụ trách. Nhân viên tiếp nhận thông tin �'ơn hàng cùng hình ảnh hoa do khách hàng cung cấp và tiến hành �'ánh giá tình trạng nguyên li�?u �'ầu vào.
+Trường hợp hoa không �'ạt yêu cầu (ví dụ: hoa b�< héo, dập hoặc không �'ảm bảo chất lượng), nhân viên sẽ từ ch�'i tiếp tục thực hi�?n �'ơn hàng. H�? th�'ng sau �'ó cập nhật trạng thái �'ơn hàng sang �?o�'ã hủy�?� và gửi thông báo �'ến khách hàng �'�f xác nhận vi�?c hủy �'ơn, �'�"ng thời cung cấp thông tin liên quan �'ến vi�?c xử lý thanh toán (hoàn cọc).
+Ngược lại, nếu hoa �'ạt yêu cầu, nhân viên xác nhận và h�? th�'ng cập nhật trạng thái �'ơn hàng sang bư�>c thực hi�?n sản phẩm.
+Sơ �'�" IFD của quy trình này giúp th�f hi�?n rõ lu�"ng thông tin từ khi khách hàng �'ặt �'ơn, thực hi�?n thanh toán �'ến bư�>c ki�fm tra chất lượng nguyên li�?u �'ầu vào b�Yi nhân viên, từ �'ó �'ảm bảo quy trình xử lý �'ơn hàng custom �'ược thực hi�?n nhất quán và hạn chế rủi ro phát sinh.
+3.2.2.3. IFD quy trình gửi demo và thanh toán của sản phẩm custom
+Quy trình bắt �'ầu khi nhân viên hoàn thành vi�?c thiết kế demo cho �'ơn hàng custom và cập nhật demo lên h�? th�'ng. Thông tin demo bao g�"m hình ảnh thiết kế, n�Ti dung mô tả và các yêu cầu liên quan �'ược lưu trữ và quản lý trên h�? th�'ng.
+Sau khi demo �'ược cập nhật, h�? th�'ng tự �'�Tng gửi email thông báo �'ến khách hàng về vi�?c demo �'ã sẵn sàng �'�f xem. Khách hàng nhận �'ược thông báo sẽ truy cập vào website �'�f ki�fm tra demo của sản phẩm.
+Tại �'ây, khách hàng thực hi�?n �'ánh giá demo. Trường hợp demo �'ược chấp nhận, h�? th�'ng sẽ hi�fn th�< thông tin thanh toán cho phần giá tr�< còn lại của �'ơn hàng, �'�"ng thời chuy�fn sang quy trình thanh toán �'�f hoàn tất giao d�<ch.
+Ngược lại, nếu demo chưa �'áp ứng yêu cầu, h�? th�'ng sẽ cung cấp bi�fu mẫu �'�f khách hàng nhập các yêu cầu ch�?nh sửa chi tiết. Sau khi khách hàng gửi yêu cầu, h�? th�'ng ghi nhận thông tin và chuy�fn �'ến nhân viên phụ trách thông qua thông báo n�Ti b�T.
+Nhân viên tiếp nhận yêu cầu ch�?nh sửa, tiến hành cập nhật và thiết kế lại demo theo n�Ti dung �'ã �'ược cung cấp. Sau khi hoàn tất, demo m�>i sẽ tiếp tục �'ược cập nhật lên h�? th�'ng và quy trình gửi demo sẽ �'ược lặp lại cho �'ến khi khách hàng chấp nhận.
+Trong trường hợp s�' lần ch�?nh sửa vượt quá gi�>i hạn cho phép là 3 lần, h�? th�'ng sẽ áp dụng �'iều ch�?nh chi phí b�. sung vào giá tr�< �'ơn hàng là t�fng 10% giá tr�< �'ơn hàng trư�>c khi tiếp tục quy trình.
+Sơ �'�" IFD của quy trình này giúp mô tả rõ lu�"ng thông tin giữa khách hàng, h�? th�'ng và nhân viên trong quá trình xử lý demo sản phẩm custom, �'ảm bảo vi�?c trao �'�.i yêu cầu �'ược thực hi�?n chính xác và h�- trợ ki�fm soát hi�?u quả tiến �'�T thực hi�?n �'ơn hàng.
+3.2.3. Sơ �'�" ngữ cảnh CD
+Sơ �'�" ngữ cảnh CD (Context Diagram) mô tả m�'i quan h�? trao �'�.i thông tin giữa h�? th�'ng Website quản lý bán hàng Dear Floral v�>i các tác nhân bên ngoài g�"m khách hàng, nhân viên và quản lý.
+Khách hàng cung cấp yêu cầu �'ặt hàng, chứng từ thanh toán và yêu cầu hủy �'ơn; �'�.i lại nhận �'ược xác nhận �'ơn hàng, hóa �'ơn thanh toán và thông báo xác nhận hủy. Nhân viên cung cấp thông tin sản phẩm, loại sản phẩm và thông tin người dùng; �'�"ng thời nhận danh sách sản phẩm và danh sách người dùng từ h�? th�'ng �'�f phục vụ quản lý. Quản lý tương tác bằng cách gửi yêu cầu báo cáo, th�'ng kê và nhận lại các báo cáo t�.ng hợp về tình hình hoạt �'�Tng kinh doanh. Sơ �'�" này xác �'�<nh ranh gi�>i và các lu�"ng dữ li�?u chính giữa h�? th�'ng và môi trường bên ngoài.
+3.2.4. Sơ �'�" lu�"ng dữ li�?u DFD
+3.2.4.1. Sơ �'�" DFD mức 0
+3.2.4.2. Sơ �'�" DFD mức 1
+Quản lý người dùng
+Quản lý sản phẩm
+Quản lý �'ặt hàng
+Báo cáo th�'ng kê
+3.3. Thiết kế cơ s�Y dữ li�?u
+3.3.1. Mô hình quan h�? thực th�f ER
+3.3.2. Mô hình cơ s�Y dữ li�?u SQL
+3.4. Thiết kế giao di�?n
+3.5. Tri�fn khai và bảo trì
