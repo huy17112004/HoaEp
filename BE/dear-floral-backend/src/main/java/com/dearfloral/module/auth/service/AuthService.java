@@ -20,6 +20,7 @@ import com.dearfloral.module.auth.repository.UserRepository;
 import com.dearfloral.module.users.entity.CustomerProfileEntity;
 import com.dearfloral.module.users.repository.CustomerProfileRepository;
 import java.util.Locale;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.AuthenticationException;
@@ -28,6 +29,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
+@Slf4j
 public class AuthService {
 
     private final UserRepository userRepository;
@@ -90,6 +92,7 @@ public class AuthService {
                     new UsernamePasswordAuthenticationToken(normalizedEmail, request.password())
             );
         } catch (AuthenticationException ex) {
+            log.warn("Login authentication failed for email={}. reason={}", normalizedEmail, ex.getMessage());
             throw new AuthException(ErrorCode.UNAUTHORIZED, "Invalid email or password.");
         }
 

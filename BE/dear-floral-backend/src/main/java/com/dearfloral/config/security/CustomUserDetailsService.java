@@ -2,6 +2,7 @@ package com.dearfloral.config.security;
 
 import com.dearfloral.module.auth.entity.UserEntity;
 import com.dearfloral.module.auth.repository.UserRepository;
+import java.util.Locale;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -18,7 +19,8 @@ public class CustomUserDetailsService implements UserDetailsService {
 
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        UserEntity user = userRepository.findByEmail(username)
+        String normalizedEmail = normalizeEmail(username);
+        UserEntity user = userRepository.findByEmail(normalizedEmail)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found."));
         return toPrincipal(user);
     }
@@ -31,5 +33,9 @@ public class CustomUserDetailsService implements UserDetailsService {
                 user.getRole().getCode().name(),
                 user.getStatus()
         );
+    }
+
+    private String normalizeEmail(String email) {
+        return email == null ? null : email.trim().toLowerCase(Locale.ROOT);
     }
 }

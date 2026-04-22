@@ -3,6 +3,7 @@ package com.dearfloral.config.security;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.io.Decoders;
+import io.jsonwebtoken.io.DecodingException;
 import io.jsonwebtoken.security.Keys;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
@@ -58,13 +59,27 @@ public class JwtService {
     }
 
     private SecretKey getSigningKey() {
-        byte[] secretBytes;
         String secret = jwtProperties.secret();
-        try {
-            secretBytes = Decoders.BASE64.decode(secret);
-        } catch (IllegalArgumentException ex) {
+
+        byte[] secretBytes = tryDecodeBase64UrlOrBase64(secret);
+        if (secretBytes == null) {
             secretBytes = secret.getBytes(StandardCharsets.UTF_8);
         }
+
         return Keys.hmacShaKeyFor(secretBytes);
+    }
+
+    private byte[] tryDecodeBase64UrlOrBase64(String secret) {
+        try {
+            return Decoders.BASE64URL.decode(secret);
+        } catch (DecodingException ex) {
+            // Fallback to BASE64 then plain-text bytes.
+        }
+
+        try {
+            return Decoders.BASE64.decode(secret);
+        } catch (DecodingException ex) {
+            return null;
+        }
     }
 }

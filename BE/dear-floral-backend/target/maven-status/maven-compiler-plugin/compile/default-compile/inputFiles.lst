@@ -15,6 +15,7 @@ D:\HoaEpProject\BE\dear-floral-backend\src\main\java\com\dearfloral\common\excep
 D:\HoaEpProject\BE\dear-floral-backend\src\main\java\com\dearfloral\common\exception\ErrorCode.java
 D:\HoaEpProject\BE\dear-floral-backend\src\main\java\com\dearfloral\common\exception\GlobalExceptionHandler.java
 D:\HoaEpProject\BE\dear-floral-backend\src\main\java\com\dearfloral\common\exception\NotFoundException.java
+D:\HoaEpProject\BE\dear-floral-backend\src\main\java\com\dearfloral\config\bootstrap\RoleDataInitializer.java
 D:\HoaEpProject\BE\dear-floral-backend\src\main\java\com\dearfloral\config\security\CurrentUser.java
 D:\HoaEpProject\BE\dear-floral-backend\src\main\java\com\dearfloral\config\security\CustomUserDetailsService.java
 D:\HoaEpProject\BE\dear-floral-backend\src\main\java\com\dearfloral\config\security\JwtAuthenticationFilter.java

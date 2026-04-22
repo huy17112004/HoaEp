@@ -29,6 +29,7 @@ public class UserService {
         this.customerAddressRepository = customerAddressRepository;
     }
 
+    @Transactional
     public ProfileResponse getMyProfile(Long userId) {
         UserEntity user = getUserOrThrow(userId);
         return toProfileResponse(user);
