@@ -1,8 +1,10 @@
 package com.dearfloral.module.availableorders.service;
 
+import com.dearfloral.common.api.PageMeta;
 import com.dearfloral.common.enums.AvailableOrderStatus;
 import com.dearfloral.common.enums.InventoryTransactionType;
 import com.dearfloral.common.enums.ProductKind;
+import com.dearfloral.common.enums.RoleCode;
 import com.dearfloral.common.exception.BusinessException;
 import com.dearfloral.common.exception.NotFoundException;
 import com.dearfloral.module.auth.entity.UserEntity;
@@ -30,6 +32,7 @@ import com.dearfloral.module.products.repository.ProductRepository;
 import com.dearfloral.module.reports.service.AuditLogService;
 import com.dearfloral.module.users.entity.CustomerAddressEntity;
 import com.dearfloral.module.users.repository.CustomerAddressRepository;
+import jakarta.persistence.criteria.Predicate;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -38,6 +41,10 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -103,7 +110,7 @@ public class AvailableOrderService {
                     .orElseThrow(() -> new NotFoundException("PRODUCT_NOT_FOUND", "Product not found."));
             validateOrderableProduct(product);
 
-            InventoryItemEntity inventory = inventoryItemRepository.findByProductId(product.getId())
+            InventoryItemEntity inventory = inventoryItemRepository.findWithLockByProductId(product.getId())
                     .orElseThrow(() -> new BusinessException("INSUFFICIENT_INVENTORY", "Insufficient inventory."));
             if (inventory.getQuantityOnHand() < itemRequest.quantity()) {
                 throw new BusinessException("INSUFFICIENT_INVENTORY", "Insufficient inventory.");
@@ -222,13 +229,58 @@ public class AvailableOrderService {
         return toOrderResponse(order, items);
     }
 
-    public List<AvailableOrderResponse> getMyOrders(Long customerUserId) {
-        return availableOrderRepository.findByCustomerUserIdOrderByOrderedAtDesc(customerUserId).stream()
-                .map(order -> toOrderResponse(
-                        order,
-                        availableOrderItemRepository.findByAvailableOrderId(order.getId())
-                ))
-                .toList();
+    @Transactional(readOnly = true)
+    public AvailableOrderResponse getOrderDetail(Long orderId, Long actorUserId, RoleCode actorRole) {
+        AvailableOrderEntity order = getOrderForActor(orderId, actorUserId, actorRole);
+        List<AvailableOrderItemEntity> items = availableOrderItemRepository.findByAvailableOrderId(order.getId());
+        return toOrderResponse(order, items);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<AvailableOrderResponse> getMyOrders(Long customerUserId, int page, int limit) {
+        Pageable pageable = PageRequest.of(page, limit);
+        Specification<AvailableOrderEntity> spec = (root, query, cb) -> cb.equal(root.get("customerUser").get("id"), customerUserId);
+        return availableOrderRepository.findAll(spec, pageable)
+                .map(order -> toOrderResponse(order, availableOrderItemRepository.findByAvailableOrderId(order.getId())));
+    }
+
+    @Transactional(readOnly = true)
+    public Page<AvailableOrderResponse> getAdminOrders(
+            String keyword,
+            AvailableOrderStatus orderStatus,
+            String paymentStatus,
+            int page,
+            int limit
+    ) {
+        Pageable pageable = PageRequest.of(page, limit);
+        Specification<AvailableOrderEntity> spec = (root, query, cb) -> {
+            List<Predicate> predicates = new ArrayList<>();
+            if (keyword != null && !keyword.isBlank()) {
+                String like = "%" + keyword.trim().toLowerCase() + "%";
+                predicates.add(cb.or(
+                        cb.like(cb.lower(root.get("orderCode")), like),
+                        cb.like(cb.lower(root.get("customerUser").get("fullName")), like)
+                ));
+            }
+            if (orderStatus != null) {
+                predicates.add(cb.equal(root.get("orderStatus"), orderStatus));
+            }
+            if (paymentStatus != null && !paymentStatus.isBlank()) {
+                predicates.add(cb.equal(cb.upper(root.get("paymentStatus")), paymentStatus.trim().toUpperCase()));
+            }
+            return cb.and(predicates.toArray(new Predicate[0]));
+        };
+        return availableOrderRepository.findAll(spec, pageable)
+                .map(order -> toOrderResponse(order, availableOrderItemRepository.findByAvailableOrderId(order.getId())));
+    }
+
+    public PageMeta toPageMeta(Page<?> pageData) {
+        return PageMeta.builder()
+                .page(pageData.getNumber())
+                .limit(pageData.getSize())
+                .totalItems(pageData.getTotalElements())
+                .totalPages(pageData.getTotalPages())
+                .build();
     }
 
     private UserEntity getUserOrThrow(Long userId) {
@@ -246,6 +298,15 @@ public class AvailableOrderService {
         if (!"ACTIVE".equalsIgnoreCase(product.getStatus())) {
             throw new BusinessException("PRODUCT_INACTIVE", "Product is inactive.");
         }
+    }
+
+    private AvailableOrderEntity getOrderForActor(Long orderId, Long actorUserId, RoleCode actorRole) {
+        if (actorRole == RoleCode.CUSTOMER) {
+            return availableOrderRepository.findByIdAndCustomerUserId(orderId, actorUserId)
+                    .orElseThrow(() -> new NotFoundException("ORDER_NOT_FOUND", "Order not found."));
+        }
+        return availableOrderRepository.findById(orderId)
+                .orElseThrow(() -> new NotFoundException("ORDER_NOT_FOUND", "Order not found."));
     }
 
     private AvailableOrderResponse toOrderResponse(

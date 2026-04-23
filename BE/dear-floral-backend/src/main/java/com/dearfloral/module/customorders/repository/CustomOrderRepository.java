@@ -11,6 +11,7 @@ import org.springframework.data.repository.query.Param;
 public interface CustomOrderRepository extends JpaRepository<CustomOrderEntity, Long>, JpaSpecificationExecutor<CustomOrderEntity> {
     Optional<CustomOrderEntity> findByOrderCode(String orderCode);
     Optional<CustomOrderEntity> findByIdAndCustomerUserId(Long id, Long customerUserId);
+    boolean existsByCustomerUserId(Long customerUserId);
     long countByOrderStatus(CustomOrderStatus orderStatus);
 
     @Query("""
