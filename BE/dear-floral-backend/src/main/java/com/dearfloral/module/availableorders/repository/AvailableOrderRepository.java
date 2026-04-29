@@ -19,8 +19,8 @@ public interface AvailableOrderRepository extends JpaRepository<AvailableOrderEn
     @Query("""
             select count(a)
             from AvailableOrderEntity a
-            where (:fromDate is null or a.orderedAt >= :fromDate)
-              and (:toDate is null or a.orderedAt <= :toDate)
+            where a.orderedAt >= :fromDate
+              and a.orderedAt <= :toDate
             """)
     long countInRange(@Param("fromDate") java.time.LocalDateTime fromDate, @Param("toDate") java.time.LocalDateTime toDate);
 
@@ -28,8 +28,8 @@ public interface AvailableOrderRepository extends JpaRepository<AvailableOrderEn
             select count(a)
             from AvailableOrderEntity a
             where a.orderStatus in :statuses
-              and (:fromDate is null or a.orderedAt >= :fromDate)
-              and (:toDate is null or a.orderedAt <= :toDate)
+              and a.orderedAt >= :fromDate
+              and a.orderedAt <= :toDate
             """)
     long countByStatusInRange(
             @Param("statuses") java.util.Collection<AvailableOrderStatus> statuses,
@@ -56,8 +56,8 @@ public interface AvailableOrderRepository extends JpaRepository<AvailableOrderEn
             select a.orderStatus as orderStatus,
                    count(a) as totalOrders
             from AvailableOrderEntity a
-            where (:fromDate is null or a.orderedAt >= :fromDate)
-              and (:toDate is null or a.orderedAt <= :toDate)
+            where a.orderedAt >= :fromDate
+              and a.orderedAt <= :toDate
             group by a.orderStatus
             order by a.orderStatus
             """)

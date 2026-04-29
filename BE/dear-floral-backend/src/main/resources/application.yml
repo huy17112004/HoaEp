@@ -27,7 +27,7 @@ app:
     access-token-ttl-minutes: ${APP_JWT_ACCESS_TOKEN_TTL_MINUTES:120}
     issuer: ${APP_JWT_ISSUER:dear-floral}
   file-storage:
-    upload-dir: ${APP_UPLOAD_DIR:src/main/resources/uploads}
+    upload-dir: ${APP_UPLOAD_DIR:uploads}
 
 logging:
   level:

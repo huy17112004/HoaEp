@@ -90,16 +90,21 @@ public class ReportService {
 
     public List<RevenueReportItemResponse> getRevenue(LocalDate fromDate, LocalDate toDate, ReportGroupBy groupBy) {
         DateRange range = toDateRange(fromDate, toDate);
-        String sqlBucket = groupBy == ReportGroupBy.MONTH ? "month" : "day";
 
         Map<LocalDate, RevenueAggregation> merged = new HashMap<>();
 
-        availableOrderPaymentRepository.summarizeRevenueByBucket(range.from(), range.to(), sqlBucket).forEach(row -> {
+        List<AvailableOrderPaymentRepository.RevenueBucketProjection> availableRevenueRows = groupBy == ReportGroupBy.MONTH
+                ? availableOrderPaymentRepository.summarizeRevenueByMonth(range.from(), range.to())
+                : availableOrderPaymentRepository.summarizeRevenueByDay(range.from(), range.to());
+        availableRevenueRows.forEach(row -> {
             RevenueAggregation agg = merged.computeIfAbsent(row.getBucketDate(), k -> new RevenueAggregation());
             agg.availableRevenue = safeMoney(row.getRevenue());
         });
 
-        customOrderPaymentRepository.summarizeRevenueByBucket(range.from(), range.to(), sqlBucket).forEach(row -> {
+        List<CustomOrderPaymentRepository.RevenueBucketProjection> customRevenueRows = groupBy == ReportGroupBy.MONTH
+                ? customOrderPaymentRepository.summarizeRevenueByMonth(range.from(), range.to())
+                : customOrderPaymentRepository.summarizeRevenueByDay(range.from(), range.to());
+        customRevenueRows.forEach(row -> {
             RevenueAggregation agg = merged.computeIfAbsent(row.getBucketDate(), k -> new RevenueAggregation());
             agg.customRevenue = safeMoney(row.getRevenue());
         });
@@ -153,8 +158,8 @@ public class ReportService {
     }
 
     private DateRange toDateRange(LocalDate fromDate, LocalDate toDate) {
-        LocalDateTime from = fromDate == null ? null : fromDate.atStartOfDay();
-        LocalDateTime to = toDate == null ? null : toDate.plusDays(1).atStartOfDay().minusNanos(1);
+        LocalDateTime from = fromDate == null ? LocalDate.of(1970, 1, 1).atStartOfDay() : fromDate.atStartOfDay();
+        LocalDateTime to = toDate == null ? LocalDate.of(2999, 12, 31).atTime(23, 59, 59, 999_999_999) : toDate.plusDays(1).atStartOfDay().minusNanos(1);
         if (from != null && to != null && from.isAfter(to)) {
             throw new BusinessException("INVALID_DATE_RANGE", "fromDate must be before or equal to toDate.");
         }

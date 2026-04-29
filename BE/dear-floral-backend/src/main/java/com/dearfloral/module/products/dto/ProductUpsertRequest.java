@@ -6,6 +6,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import java.math.BigDecimal;
+import java.util.List;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.web.multipart.MultipartFile;
@@ -44,6 +45,7 @@ public class ProductUpsertRequest {
     private String imageUrl;
 
     private MultipartFile imageFile;
+    private List<MultipartFile> imageFiles;
 
     @Size(max = 100, message = "size must be at most 100 characters.")
     private String size;

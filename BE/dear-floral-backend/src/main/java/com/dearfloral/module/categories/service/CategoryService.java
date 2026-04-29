@@ -6,6 +6,7 @@ import com.dearfloral.module.categories.dto.CategoryResponse;
 import com.dearfloral.module.categories.dto.CategoryUpsertRequest;
 import com.dearfloral.module.categories.entity.ProductCategoryEntity;
 import com.dearfloral.module.categories.repository.ProductCategoryRepository;
+import com.dearfloral.module.products.repository.ProductRepository;
 import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -14,9 +15,14 @@ import org.springframework.transaction.annotation.Transactional;
 public class CategoryService {
 
     private final ProductCategoryRepository productCategoryRepository;
+    private final ProductRepository productRepository;
 
-    public CategoryService(ProductCategoryRepository productCategoryRepository) {
+    public CategoryService(
+            ProductCategoryRepository productCategoryRepository,
+            ProductRepository productRepository
+    ) {
         this.productCategoryRepository = productCategoryRepository;
+        this.productRepository = productRepository;
     }
 
     public List<CategoryResponse> getPublicCategories() {
@@ -55,6 +61,12 @@ public class CategoryService {
     public void delete(Long categoryId) {
         ProductCategoryEntity entity = productCategoryRepository.findById(categoryId)
                 .orElseThrow(() -> new NotFoundException("CATEGORY_NOT_FOUND", "Category not found."));
+        if (productRepository.existsByCategoryId(categoryId)) {
+            throw new BusinessException(
+                    "CATEGORY_HAS_PRODUCTS",
+                    "Cannot delete category because there are products assigned to it."
+            );
+        }
         entity.setStatus("INACTIVE");
         productCategoryRepository.save(entity);
     }

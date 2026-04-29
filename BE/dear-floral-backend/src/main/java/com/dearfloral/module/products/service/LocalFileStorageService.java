@@ -34,7 +34,7 @@ public class LocalFileStorageService {
         }
 
         String fileName = "product-" + UUID.randomUUID() + "." + extension;
-        Path uploadDir = Path.of(fileStorageProperties.uploadDir(), "products");
+        Path uploadDir = resolveUploadDir().resolve("products");
         Path target = uploadDir.resolve(fileName);
         try {
             Files.createDirectories(uploadDir);
@@ -42,7 +42,15 @@ public class LocalFileStorageService {
         } catch (IOException ex) {
             throw new BusinessException("FILE_STORAGE_ERROR", "Cannot store product image.");
         }
-        return "products/" + fileName;
+        return "/uploads/products/" + fileName;
+    }
+
+    public Path resolveUploadDir() {
+        Path configuredPath = Path.of(fileStorageProperties.uploadDir());
+        if (configuredPath.isAbsolute()) {
+            return configuredPath.normalize();
+        }
+        return Path.of(System.getProperty("user.dir")).resolve(configuredPath).normalize();
     }
 
     private String extractExtension(String filename) {

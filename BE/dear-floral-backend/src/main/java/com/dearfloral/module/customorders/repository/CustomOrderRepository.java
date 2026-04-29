@@ -17,8 +17,8 @@ public interface CustomOrderRepository extends JpaRepository<CustomOrderEntity, 
     @Query("""
             select count(c)
             from CustomOrderEntity c
-            where (:fromDate is null or c.orderedAt >= :fromDate)
-              and (:toDate is null or c.orderedAt <= :toDate)
+            where c.orderedAt >= :fromDate
+              and c.orderedAt <= :toDate
             """)
     long countInRange(@Param("fromDate") java.time.LocalDateTime fromDate, @Param("toDate") java.time.LocalDateTime toDate);
 
@@ -26,8 +26,8 @@ public interface CustomOrderRepository extends JpaRepository<CustomOrderEntity, 
             select count(c)
             from CustomOrderEntity c
             where c.orderStatus in :statuses
-              and (:fromDate is null or c.orderedAt >= :fromDate)
-              and (:toDate is null or c.orderedAt <= :toDate)
+              and c.orderedAt >= :fromDate
+              and c.orderedAt <= :toDate
             """)
     long countByStatusInRange(
             @Param("statuses") java.util.Collection<CustomOrderStatus> statuses,
@@ -54,8 +54,8 @@ public interface CustomOrderRepository extends JpaRepository<CustomOrderEntity, 
             select c.orderStatus as orderStatus,
                    count(c) as totalOrders
             from CustomOrderEntity c
-            where (:fromDate is null or c.orderedAt >= :fromDate)
-              and (:toDate is null or c.orderedAt <= :toDate)
+            where c.orderedAt >= :fromDate
+              and c.orderedAt <= :toDate
             group by c.orderStatus
             order by c.orderStatus
             """)

@@ -14,19 +14,33 @@ public interface CustomOrderPaymentRepository extends JpaRepository<CustomOrderP
     Optional<CustomOrderPaymentEntity> findByCustomOrderIdAndPaymentStage(Long customOrderId, CustomPaymentStage paymentStage);
 
     @Query(value = """
-            select cast(date_trunc(:groupBy, p.paid_at) as date) as bucketDate,
+            select cast(date_trunc('day', p.paid_at) as date) as bucketDate,
                    sum(p.amount) as revenue
             from custom_order_payments p
             where p.payment_status = 'PAID'
-              and (:fromDate is null or p.paid_at >= :fromDate)
-              and (:toDate is null or p.paid_at <= :toDate)
-            group by cast(date_trunc(:groupBy, p.paid_at) as date)
+              and p.paid_at >= :fromDate
+              and p.paid_at <= :toDate
+            group by cast(date_trunc('day', p.paid_at) as date)
             order by bucketDate
             """, nativeQuery = true)
-    List<RevenueBucketProjection> summarizeRevenueByBucket(
+    List<RevenueBucketProjection> summarizeRevenueByDay(
             @Param("fromDate") java.time.LocalDateTime fromDate,
-            @Param("toDate") java.time.LocalDateTime toDate,
-            @Param("groupBy") String groupBy
+            @Param("toDate") java.time.LocalDateTime toDate
+    );
+
+    @Query(value = """
+            select cast(date_trunc('month', p.paid_at) as date) as bucketDate,
+                   sum(p.amount) as revenue
+            from custom_order_payments p
+            where p.payment_status = 'PAID'
+              and p.paid_at >= :fromDate
+              and p.paid_at <= :toDate
+            group by cast(date_trunc('month', p.paid_at) as date)
+            order by bucketDate
+            """, nativeQuery = true)
+    List<RevenueBucketProjection> summarizeRevenueByMonth(
+            @Param("fromDate") java.time.LocalDateTime fromDate,
+            @Param("toDate") java.time.LocalDateTime toDate
     );
 
     interface RevenueBucketProjection {

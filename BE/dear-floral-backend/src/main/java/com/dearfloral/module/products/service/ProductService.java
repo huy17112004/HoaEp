@@ -11,6 +11,8 @@ import com.dearfloral.module.categories.repository.ProductCategoryRepository;
 import com.dearfloral.module.products.dto.ProductResponse;
 import com.dearfloral.module.products.dto.ProductUpsertRequest;
 import com.dearfloral.module.products.entity.ProductEntity;
+import com.dearfloral.module.products.entity.ProductImageEntity;
+import com.dearfloral.module.products.repository.ProductImageRepository;
 import com.dearfloral.module.products.repository.ProductRepository;
 import jakarta.persistence.criteria.Predicate;
 import java.util.ArrayList;
@@ -22,6 +24,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 @Service
 public class ProductService {
@@ -30,19 +33,23 @@ public class ProductService {
     private final ProductCategoryRepository productCategoryRepository;
     private final UserRepository userRepository;
     private final LocalFileStorageService localFileStorageService;
+    private final ProductImageRepository productImageRepository;
 
     public ProductService(
             ProductRepository productRepository,
             ProductCategoryRepository productCategoryRepository,
             UserRepository userRepository,
-            LocalFileStorageService localFileStorageService
+            LocalFileStorageService localFileStorageService,
+            ProductImageRepository productImageRepository
     ) {
         this.productRepository = productRepository;
         this.productCategoryRepository = productCategoryRepository;
         this.userRepository = userRepository;
         this.localFileStorageService = localFileStorageService;
+        this.productImageRepository = productImageRepository;
     }
 
+    @Transactional(readOnly = true)
     public Page<ProductResponse> getPublicProducts(
             String keyword,
             Long categoryId,
@@ -73,6 +80,7 @@ public class ProductService {
         return productRepository.findAll(spec, pageable).map(this::toResponse);
     }
 
+    @Transactional(readOnly = true)
     public Page<ProductResponse> getAdminProducts(
             String keyword,
             Long categoryId,
@@ -106,6 +114,7 @@ public class ProductService {
         return productRepository.findAll(spec, pageable).map(this::toResponse);
     }
 
+    @Transactional(readOnly = true)
     public ProductResponse getPublicProductDetail(Long productId) {
         ProductEntity entity = productRepository.findById(productId)
                 .orElseThrow(() -> new NotFoundException("PRODUCT_NOT_FOUND", "Product not found."));
@@ -119,6 +128,7 @@ public class ProductService {
     public ProductResponse createProduct(ProductUpsertRequest request, Long actorUserId) {
         ProductCategoryEntity category = productCategoryRepository.findById(request.getCategoryId())
                 .orElseThrow(() -> new NotFoundException("CATEGORY_NOT_FOUND", "Category not found."));
+        validateCategoryAssignable(category, false);
 
         String slug = resolveSlug(request.getSlug(), request.getName());
         if (productRepository.existsBySlug(slug)) {
@@ -128,7 +138,9 @@ public class ProductService {
         ProductEntity product = new ProductEntity();
         applyCommonProductData(product, request, category, actorUserId);
         product.setSlug(slug);
-        return toResponse(productRepository.save(product));
+        ProductEntity savedProduct = productRepository.save(product);
+        syncProductImages(savedProduct, request);
+        return toResponse(savedProduct);
     }
 
     @Transactional
@@ -137,6 +149,9 @@ public class ProductService {
                 .orElseThrow(() -> new NotFoundException("PRODUCT_NOT_FOUND", "Product not found."));
         ProductCategoryEntity category = productCategoryRepository.findById(request.getCategoryId())
                 .orElseThrow(() -> new NotFoundException("CATEGORY_NOT_FOUND", "Category not found."));
+        boolean isKeepingCurrentCategory = product.getCategory() != null
+                && product.getCategory().getId().equals(request.getCategoryId());
+        validateCategoryAssignable(category, isKeepingCurrentCategory);
 
         String slug = resolveSlug(request.getSlug(), request.getName());
         if (productRepository.existsBySlugAndIdNot(slug, productId)) {
@@ -145,7 +160,9 @@ public class ProductService {
 
         applyCommonProductData(product, request, category, actorUserId);
         product.setSlug(slug);
-        return toResponse(productRepository.save(product));
+        ProductEntity savedProduct = productRepository.save(product);
+        syncProductImages(savedProduct, request);
+        return toResponse(savedProduct);
     }
 
     @Transactional
@@ -180,11 +197,7 @@ public class ProductService {
         product.setProductKind(request.getProductKind());
         product.setIsSellableDirectly(request.getIsSellableDirectly());
         product.setIsCustomSelectable(request.getIsCustomSelectable());
-
-        String storedImage = localFileStorageService.saveProductImage(request.getImageFile());
-        if (storedImage != null) {
-            product.setImageUrl(storedImage);
-        } else if (request.getImageUrl() != null && !request.getImageUrl().isBlank()) {
+        if (request.getImageUrl() != null && !request.getImageUrl().isBlank()) {
             product.setImageUrl(request.getImageUrl().trim());
         }
 
@@ -198,6 +211,52 @@ public class ProductService {
                     .orElseThrow(() -> new NotFoundException("USER_NOT_FOUND", "User not found."));
             product.setCreatedBy(actor);
         }
+    }
+
+    private void syncProductImages(ProductEntity product, ProductUpsertRequest request) {
+        List<MultipartFile> uploadedImages = normalizeUploadedImages(request);
+        if (uploadedImages.isEmpty()) {
+            return;
+        }
+
+        productImageRepository.deleteByProductId(product.getId());
+
+        int sortOrder = 1;
+        String primaryImageUrl = null;
+        for (MultipartFile file : uploadedImages) {
+            String storedImage = localFileStorageService.saveProductImage(file);
+            if (storedImage == null) {
+                continue;
+            }
+
+            if (primaryImageUrl == null) {
+                primaryImageUrl = storedImage;
+            }
+
+            ProductImageEntity productImage = new ProductImageEntity();
+            productImage.setProduct(product);
+            productImage.setImageUrl(storedImage);
+            productImage.setSortOrder(sortOrder++);
+            productImageRepository.save(productImage);
+        }
+
+        if (primaryImageUrl != null) {
+            product.setImageUrl(primaryImageUrl);
+            productRepository.save(product);
+        }
+    }
+
+    private List<MultipartFile> normalizeUploadedImages(ProductUpsertRequest request) {
+        List<MultipartFile> uploadedImages = new ArrayList<>();
+        if (request.getImageFiles() != null) {
+            uploadedImages.addAll(request.getImageFiles().stream()
+                    .filter(file -> file != null && !file.isEmpty())
+                    .toList());
+        }
+        if (uploadedImages.isEmpty() && request.getImageFile() != null && !request.getImageFile().isEmpty()) {
+            uploadedImages.add(request.getImageFile());
+        }
+        return uploadedImages;
     }
 
     private void validateProductKindRules(ProductKind kind, Boolean isSellableDirectly, Boolean isCustomSelectable) {
@@ -216,6 +275,12 @@ public class ProductService {
                         "standard_product must have isSellableDirectly=true."
                 );
             }
+        }
+    }
+
+    private void validateCategoryAssignable(ProductCategoryEntity category, boolean allowInactiveIfCurrentCategory) {
+        if (!"ACTIVE".equalsIgnoreCase(category.getStatus()) && !allowInactiveIfCurrentCategory) {
+            throw new BusinessException("CATEGORY_INACTIVE", "Cannot assign product to inactive category.");
         }
     }
 

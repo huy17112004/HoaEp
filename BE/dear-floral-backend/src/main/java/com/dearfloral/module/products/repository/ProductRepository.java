@@ -11,12 +11,13 @@ public interface ProductRepository extends JpaRepository<ProductEntity, Long>, J
     Optional<ProductEntity> findBySlug(String slug);
     boolean existsBySlug(String slug);
     boolean existsBySlugAndIdNot(String slug, Long id);
+    boolean existsByCategoryId(Long categoryId);
 
     @Query("""
             select count(p)
             from ProductEntity p
-            where (:fromDate is null or p.createdAt >= :fromDate)
-              and (:toDate is null or p.createdAt <= :toDate)
+            where p.createdAt >= :fromDate
+              and p.createdAt <= :toDate
             """)
     long countInRange(@Param("fromDate") java.time.LocalDateTime fromDate, @Param("toDate") java.time.LocalDateTime toDate);
 }
