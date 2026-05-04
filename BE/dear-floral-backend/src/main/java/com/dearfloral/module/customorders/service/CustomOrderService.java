@@ -27,8 +27,10 @@ import com.dearfloral.module.customorders.dto.DemoFeedbackResponse;
 import com.dearfloral.module.customorders.dto.EvaluateFlowerInputRequest;
 import com.dearfloral.module.customorders.dto.EvaluateFlowerInputResponse;
 import com.dearfloral.module.customorders.dto.RemainingPaymentResponse;
+import com.dearfloral.module.customorders.dto.SubmitRefundInfoRequest;
 import com.dearfloral.module.customorders.dto.UpdateCustomDeliveryRequest;
 import com.dearfloral.module.customorders.dto.UpdateCustomOrderStatusRequest;
+import com.dearfloral.module.customorders.dto.VerifyRemainingPaymentRequest;
 import com.dearfloral.module.customorders.entity.CustomDemoEntity;
 import com.dearfloral.module.customorders.entity.CustomOrderEntity;
 import com.dearfloral.module.customorders.entity.CustomOrderPaymentEntity;
@@ -44,6 +46,7 @@ import com.dearfloral.module.inventory.entity.InventoryTransactionEntity;
 import com.dearfloral.module.inventory.repository.InventoryItemRepository;
 import com.dearfloral.module.inventory.repository.InventoryTransactionRepository;
 import com.dearfloral.module.products.entity.ProductEntity;
+import com.dearfloral.module.products.service.LocalFileStorageService;
 import com.dearfloral.module.products.repository.ProductRepository;
 import com.dearfloral.module.reports.service.AuditLogService;
 import com.dearfloral.module.users.entity.CustomerAddressEntity;
@@ -54,6 +57,7 @@ import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
@@ -72,27 +76,45 @@ public class CustomOrderService {
 
     private static final String PAYMENT_STATUS_PAID = "PAID";
     private static final String PAYMENT_STATUS_PARTIALLY_PAID = "PARTIALLY_PAID";
+    private static final String PAYMENT_STATUS_PENDING = "PENDING";
+    private static final String PAYMENT_STATUS_FAILED = "FAILED";
+    private static final String PAYMENT_STATUS_REFUNDED = "REFUNDED";
     private static final BigDecimal DEFAULT_DEPOSIT_RATE = new BigDecimal("0.50");
     private static final BigDecimal DEFAULT_EXTRA_REVISION_FEE_RATE = new BigDecimal("0.1000");
     private static final int FREE_REVISION_LIMIT = 3;
-    private static final Map<CustomOrderStatus, EnumSet<CustomOrderStatus>> ALLOWED_TRANSITIONS = Map.of(
-            CustomOrderStatus.DEPOSITED, EnumSet.of(CustomOrderStatus.WAITING_FLOWER_REVIEW, CustomOrderStatus.CANCELED),
-            CustomOrderStatus.WAITING_FLOWER_REVIEW, EnumSet.of(CustomOrderStatus.IN_PROGRESS, CustomOrderStatus.CANCELED),
-            CustomOrderStatus.IN_PROGRESS, EnumSet.of(
-                    CustomOrderStatus.WAITING_DEMO_FEEDBACK,
-                    CustomOrderStatus.WAITING_REMAINING_PAYMENT,
-                    CustomOrderStatus.COMPLETED,
-                    CustomOrderStatus.CANCELED
-            ),
-            CustomOrderStatus.WAITING_DEMO_FEEDBACK, EnumSet.of(
-                    CustomOrderStatus.IN_PROGRESS,
-                    CustomOrderStatus.WAITING_REMAINING_PAYMENT,
-                    CustomOrderStatus.CANCELED
-            ),
-            CustomOrderStatus.WAITING_REMAINING_PAYMENT, EnumSet.of(CustomOrderStatus.IN_PROGRESS, CustomOrderStatus.CANCELED),
-            CustomOrderStatus.COMPLETED, EnumSet.noneOf(CustomOrderStatus.class),
-            CustomOrderStatus.CANCELED, EnumSet.noneOf(CustomOrderStatus.class)
-    );
+    private static final int MAX_DEMO_IMAGES_PER_VERSION = 10;
+    private static final Map<CustomOrderStatus, EnumSet<CustomOrderStatus>> ALLOWED_TRANSITIONS = new java.util.HashMap<>();
+
+    static {
+        ALLOWED_TRANSITIONS.put(CustomOrderStatus.PENDING_DEPOSIT,
+                EnumSet.of(CustomOrderStatus.PENDING_DEPOSIT_VERIFICATION, CustomOrderStatus.CANCELED));
+        ALLOWED_TRANSITIONS.put(CustomOrderStatus.PENDING_DEPOSIT_VERIFICATION,
+                EnumSet.of(CustomOrderStatus.WAITING_FLOWER_REVIEW, CustomOrderStatus.PENDING_DEPOSIT));
+        ALLOWED_TRANSITIONS.put(CustomOrderStatus.DEPOSITED,
+                EnumSet.of(CustomOrderStatus.WAITING_FLOWER_REVIEW, CustomOrderStatus.CANCELED));
+        ALLOWED_TRANSITIONS.put(CustomOrderStatus.WAITING_FLOWER_REVIEW,
+                EnumSet.of(CustomOrderStatus.IN_PROGRESS, CustomOrderStatus.WAITING_REFUND_INFO, CustomOrderStatus.CANCELED));
+        ALLOWED_TRANSITIONS.put(CustomOrderStatus.IN_PROGRESS, EnumSet.of(
+                CustomOrderStatus.WAITING_DEMO_FEEDBACK,
+                CustomOrderStatus.WAITING_REMAINING_PAYMENT,
+                CustomOrderStatus.COMPLETED,
+                CustomOrderStatus.CANCELED));
+        ALLOWED_TRANSITIONS.put(CustomOrderStatus.WAITING_DEMO_FEEDBACK, EnumSet.of(
+                CustomOrderStatus.IN_PROGRESS,
+                CustomOrderStatus.WAITING_REMAINING_PAYMENT,
+                CustomOrderStatus.CANCELED));
+        ALLOWED_TRANSITIONS.put(CustomOrderStatus.WAITING_REMAINING_PAYMENT,
+                EnumSet.of(CustomOrderStatus.WAITING_REMAINING_PAYMENT_VERIFICATION, CustomOrderStatus.CANCELED));
+        ALLOWED_TRANSITIONS.put(CustomOrderStatus.WAITING_REMAINING_PAYMENT_VERIFICATION,
+                EnumSet.of(CustomOrderStatus.WAITING_REMAINING_PAYMENT, CustomOrderStatus.DELIVERING, CustomOrderStatus.CANCELED));
+        ALLOWED_TRANSITIONS.put(CustomOrderStatus.DELIVERING,
+                EnumSet.of(CustomOrderStatus.COMPLETED, CustomOrderStatus.CANCELED));
+        ALLOWED_TRANSITIONS.put(CustomOrderStatus.WAITING_REFUND_INFO, EnumSet.of(CustomOrderStatus.WAITING_REFUND, CustomOrderStatus.CANCELED));
+        ALLOWED_TRANSITIONS.put(CustomOrderStatus.WAITING_REFUND, EnumSet.of(CustomOrderStatus.REFUNDED, CustomOrderStatus.CANCELED));
+        ALLOWED_TRANSITIONS.put(CustomOrderStatus.REFUNDED, EnumSet.noneOf(CustomOrderStatus.class));
+        ALLOWED_TRANSITIONS.put(CustomOrderStatus.COMPLETED, EnumSet.noneOf(CustomOrderStatus.class));
+        ALLOWED_TRANSITIONS.put(CustomOrderStatus.CANCELED, EnumSet.noneOf(CustomOrderStatus.class));
+    }
 
     private final CustomOrderRepository customOrderRepository;
     private final CustomDemoRepository customDemoRepository;
@@ -104,6 +126,7 @@ public class CustomOrderService {
     private final UserRepository userRepository;
     private final CustomerAddressRepository customerAddressRepository;
     private final CustomDeliveryRecordRepository customDeliveryRecordRepository;
+    private final LocalFileStorageService localFileStorageService;
     private final AuditLogService auditLogService;
 
     public CustomOrderService(
@@ -117,6 +140,7 @@ public class CustomOrderService {
             UserRepository userRepository,
             CustomerAddressRepository customerAddressRepository,
             CustomDeliveryRecordRepository customDeliveryRecordRepository,
+            LocalFileStorageService localFileStorageService,
             AuditLogService auditLogService
     ) {
         this.customOrderRepository = customOrderRepository;
@@ -129,6 +153,7 @@ public class CustomOrderService {
         this.userRepository = userRepository;
         this.customerAddressRepository = customerAddressRepository;
         this.customDeliveryRecordRepository = customDeliveryRecordRepository;
+        this.localFileStorageService = localFileStorageService;
         this.auditLogService = auditLogService;
     }
 
@@ -141,33 +166,28 @@ public class CustomOrderService {
                 .orElseThrow(() -> new NotFoundException("PRODUCT_NOT_FOUND", "Selected frame product not found."));
         validateFrameProduct(frame);
 
-        InventoryItemEntity inventory = inventoryItemRepository.findWithLockByProductId(frame.getId())
+        // Only validate stock exists — do NOT reserve yet (reserve when deposit confirmed)
+        inventoryItemRepository.findByProductId(frame.getId())
                 .orElseThrow(() -> new BusinessException("INSUFFICIENT_INVENTORY", "Selected frame is out of stock."));
-        if (inventory.getQuantityOnHand() < 1) {
-            throw new BusinessException("INSUFFICIENT_INVENTORY", "Selected frame is out of stock.");
-        }
 
         BigDecimal totalAmount = frame.getPrice().setScale(2, RoundingMode.HALF_UP);
         BigDecimal depositAmount = totalAmount.multiply(DEFAULT_DEPOSIT_RATE).setScale(2, RoundingMode.HALF_UP);
         BigDecimal remainingAmount = totalAmount.subtract(depositAmount);
-        String aggregatePaymentStatus = remainingAmount.compareTo(BigDecimal.ZERO) > 0
-                ? PAYMENT_STATUS_PARTIALLY_PAID
-                : PAYMENT_STATUS_PAID;
 
         CustomOrderEntity order = new CustomOrderEntity();
         order.setOrderCode(generateOrderCode());
         order.setCustomerUser(customer);
         order.setShippingAddress(shippingAddress);
         order.setSelectedFrameProduct(frame);
-        order.setOrderStatus(CustomOrderStatus.WAITING_FLOWER_REVIEW);
-        order.setPaymentStatus(aggregatePaymentStatus);
+        order.setOrderStatus(CustomOrderStatus.PENDING_DEPOSIT);
+        order.setPaymentStatus("UNPAID");
         order.setDepositAmount(depositAmount);
         order.setRemainingAmount(remainingAmount);
         order.setTotalAmount(totalAmount);
         order.setFlowerType(request.flowerType().trim());
         order.setPersonalizationContent(request.personalizationContent() == null ? null : request.personalizationContent().trim());
         order.setRequestedDeliveryDate(request.requestedDeliveryDate());
-        order.setFlowerInputImageUrl(request.flowerInputImage().trim());
+        order.setFlowerInputImageUrl(request.flowerInputImage() == null ? null : request.flowerInputImage().trim());
         order.setFlowerEvaluationStatus(FlowerEvaluationStatus.PENDING);
         order.setDemoRevisionCount(0);
         order.setExtraRevisionFeeRate(DEFAULT_EXTRA_REVISION_FEE_RATE);
@@ -175,39 +195,16 @@ public class CustomOrderService {
         order.setNote(request.note() == null ? null : request.note().trim());
         CustomOrderEntity savedOrder = customOrderRepository.save(order);
 
-        CustomOrderPaymentEntity depositPayment = new CustomOrderPaymentEntity();
-        depositPayment.setCustomOrder(savedOrder);
-        depositPayment.setPaymentStage(CustomPaymentStage.DEPOSIT);
-        depositPayment.setPaymentMethod(request.depositPaymentMethod().trim().toUpperCase());
-        depositPayment.setAmount(depositAmount);
-        depositPayment.setPaymentStatus(PAYMENT_STATUS_PAID);
-        depositPayment.setTransactionRef(trimToNull(request.depositTransactionRef()));
-        depositPayment.setPaymentProofUrl(trimToNull(request.depositPaymentProof()));
-        depositPayment.setPaidAt(LocalDateTime.now());
-        depositPayment.setNote("Deposit paid on custom order creation.");
-        customOrderPaymentRepository.save(depositPayment);
-
-        inventory.setQuantityOnHand(inventory.getQuantityOnHand() - 1);
-        inventoryItemRepository.save(inventory);
-        saveInventoryTransaction(
-                frame,
-                InventoryTransactionType.RESERVE,
-                -1,
-                savedOrder.getId(),
-                customer,
-                "Reserve frame for custom order " + savedOrder.getOrderCode()
-        );
-
         saveStatusHistory(
                 savedOrder,
-                CustomOrderStatus.WAITING_FLOWER_REVIEW,
-                CustomOrderStatus.WAITING_FLOWER_REVIEW,
+                CustomOrderStatus.PENDING_DEPOSIT,
+                CustomOrderStatus.PENDING_DEPOSIT,
                 customer,
-                "Order created and deposit paid."
+                "Order created, awaiting deposit."
         );
 
         log.info(
-                "Custom order created: actorUserId={}, orderId={}, orderCode={}, frameProductId={}",
+                "Custom order created (pending deposit): actorUserId={}, orderId={}, orderCode={}, frameProductId={}",
                 customerUserId,
                 savedOrder.getId(),
                 savedOrder.getOrderCode(),
@@ -217,9 +214,95 @@ public class CustomOrderService {
         return new CreateCustomOrderResponse(
                 savedOrder.getId(),
                 savedOrder.getOrderCode(),
-                PAYMENT_STATUS_PAID,
+                "UNPAID",
                 savedOrder.getPaymentStatus()
         );
+    }
+
+    /**
+     * Customer confirms they have transferred the deposit amount.
+     * Moves order from PENDING_DEPOSIT -> PENDING_DEPOSIT_VERIFICATION.
+     */
+    @Transactional
+    public CustomOrderStatusResponse confirmDeposit(Long orderId, Long customerUserId) {
+        CustomOrderEntity order = customOrderRepository.findByIdAndCustomerUserId(orderId, customerUserId)
+                .orElseThrow(() -> new NotFoundException("ORDER_NOT_FOUND", "Custom order not found."));
+        UserEntity customer = getUserOrThrow(customerUserId);
+
+        if (order.getOrderStatus() != CustomOrderStatus.PENDING_DEPOSIT) {
+            throw new BusinessException("INVALID_ORDER_STATUS", "Order is not awaiting deposit.");
+        }
+
+        order.setOrderStatus(CustomOrderStatus.PENDING_DEPOSIT_VERIFICATION);
+        customOrderRepository.save(order);
+        saveStatusHistory(order, CustomOrderStatus.PENDING_DEPOSIT, CustomOrderStatus.PENDING_DEPOSIT_VERIFICATION,
+                customer, "Customer confirmed deposit transfer.");
+
+        log.info("Customer confirmed deposit: orderId={}, customerId={}", orderId, customerUserId);
+        return new CustomOrderStatusResponse(order.getId(), order.getOrderCode(), order.getOrderStatus());
+    }
+
+    /**
+     * Admin/staff verifies whether the deposit was actually received.
+     * accepted=true  -> WAITING_FLOWER_REVIEW + create payment record + reserve inventory
+     * accepted=false -> PENDING_DEPOSIT (customer needs to transfer again)
+     */
+    @Transactional
+    public CustomOrderStatusResponse verifyDeposit(Long orderId, boolean accepted, Long actorUserId) {
+        CustomOrderEntity order = customOrderRepository.findById(orderId)
+                .orElseThrow(() -> new NotFoundException("ORDER_NOT_FOUND", "Custom order not found."));
+        UserEntity actor = getUserOrThrow(actorUserId);
+
+        if (order.getOrderStatus() != CustomOrderStatus.PENDING_DEPOSIT_VERIFICATION) {
+            throw new BusinessException("INVALID_ORDER_STATUS", "Order is not awaiting deposit verification.");
+        }
+
+        CustomOrderStatus fromStatus = CustomOrderStatus.PENDING_DEPOSIT_VERIFICATION;
+        if (accepted) {
+            // Reserve inventory
+            ProductEntity frame = order.getSelectedFrameProduct();
+            InventoryItemEntity inventory = inventoryItemRepository.findWithLockByProductId(frame.getId())
+                    .orElseThrow(() -> new BusinessException("INSUFFICIENT_INVENTORY", "Frame inventory not found."));
+            if (inventory.getQuantityOnHand() < 1) {
+                throw new BusinessException("INSUFFICIENT_INVENTORY", "Selected frame is out of stock.");
+            }
+            inventory.setQuantityOnHand(inventory.getQuantityOnHand() - 1);
+            inventoryItemRepository.save(inventory);
+            saveInventoryTransaction(frame, InventoryTransactionType.RESERVE, -1,
+                    order.getId(), actor, "Reserve frame for custom order " + order.getOrderCode());
+
+            // Record deposit payment
+            CustomOrderPaymentEntity depositPayment = new CustomOrderPaymentEntity();
+            depositPayment.setCustomOrder(order);
+            depositPayment.setPaymentStage(CustomPaymentStage.DEPOSIT);
+            depositPayment.setPaymentMethod("BANK_TRANSFER");
+            depositPayment.setAmount(order.getDepositAmount());
+            depositPayment.setPaymentStatus(PAYMENT_STATUS_PAID);
+            depositPayment.setPaidAt(LocalDateTime.now());
+            depositPayment.setNote("Deposit confirmed by staff/admin.");
+            customOrderPaymentRepository.save(depositPayment);
+
+            order.setPaymentStatus(PAYMENT_STATUS_PARTIALLY_PAID);
+            order.setOrderStatus(CustomOrderStatus.WAITING_FLOWER_REVIEW);
+            customOrderRepository.save(order);
+            saveStatusHistory(order, fromStatus, CustomOrderStatus.WAITING_FLOWER_REVIEW, actor,
+                    "Deposit verified. Awaiting flower review.");
+
+            auditLogService.logAction(actorUserId, "CUSTOM_ORDER_DEPOSIT_VERIFIED", "CUSTOM_ORDER",
+                    order.getId(), "accepted=true");
+            log.info("Deposit verified (accepted): actorUserId={}, orderId={}", actorUserId, orderId);
+        } else {
+            order.setOrderStatus(CustomOrderStatus.PENDING_DEPOSIT);
+            customOrderRepository.save(order);
+            saveStatusHistory(order, fromStatus, CustomOrderStatus.PENDING_DEPOSIT, actor,
+                    "Deposit not received. Customer needs to transfer again.");
+
+            auditLogService.logAction(actorUserId, "CUSTOM_ORDER_DEPOSIT_REJECTED", "CUSTOM_ORDER",
+                    order.getId(), "accepted=false");
+            log.info("Deposit rejected: actorUserId={}, orderId={}", actorUserId, orderId);
+        }
+
+        return new CustomOrderStatusResponse(order.getId(), order.getOrderCode(), order.getOrderStatus());
     }
 
     @Transactional(readOnly = true)
@@ -315,8 +398,7 @@ public class CustomOrderService {
         CustomOrderEntity order = customOrderRepository.findById(orderId)
                 .orElseThrow(() -> new NotFoundException("ORDER_NOT_FOUND", "Custom order not found."));
 
-        if (order.getOrderStatus() != CustomOrderStatus.WAITING_FLOWER_REVIEW
-                && order.getOrderStatus() != CustomOrderStatus.DEPOSITED) {
+        if (order.getOrderStatus() != CustomOrderStatus.WAITING_FLOWER_REVIEW) {
             throw new BusinessException("INVALID_ORDER_STATUS", "Order is not ready for flower evaluation.");
         }
 
@@ -328,8 +410,11 @@ public class CustomOrderService {
         if (request.evaluationStatus() == FlowerEvaluationStatus.PASS) {
             nextStatus = CustomOrderStatus.IN_PROGRESS;
         } else {
-            nextStatus = CustomOrderStatus.CANCELED;
-            order.setCanceledAt(LocalDateTime.now());
+            if (trimToNull(request.evaluationNote()) == null) {
+                throw new BusinessException("EVALUATION_NOTE_REQUIRED", "Rejection reason is required when flower input fails.");
+            }
+            nextStatus = CustomOrderStatus.WAITING_REFUND_INFO;
+            order.setRejectionReason(trimToNull(request.evaluationNote()));
             restoreReservedFrame(order, actor);
         }
 
@@ -371,12 +456,14 @@ public class CustomOrderService {
         int nextVersion = customDemoRepository.findTopByCustomOrderIdOrderByVersionNoDesc(orderId)
                 .map(latest -> latest.getVersionNo() + 1)
                 .orElse(1);
+        List<String> demoImages = normalizeDemoImages(request);
 
         CustomDemoEntity demo = new CustomDemoEntity();
         demo.setCustomOrder(order);
         demo.setVersionNo(nextVersion);
-        demo.setDemoImageUrl(request.demoImage().trim());
-        demo.setDemoDescription(trimToNull(request.demoDescription()));
+        demo.setDemoImageUrl(demoImages.get(0));
+        demo.setDemoImageUrls(joinDemoImageUrls(demoImages));
+        demo.setDemoDescription(trimToNull(request.getDemoDescription()));
         demo.setCustomerResponseStatus(DemoResponseStatus.PENDING);
         demo.setUploadedBy(actor);
         demo.setUploadedAt(LocalDateTime.now());
@@ -431,6 +518,11 @@ public class CustomOrderService {
 
         CustomDemoEntity demo = customDemoRepository.findByIdAndCustomOrderId(demoId, orderId)
                 .orElseThrow(() -> new NotFoundException("DEMO_NOT_FOUND", "Demo not found."));
+        CustomDemoEntity latestDemo = customDemoRepository.findTopByCustomOrderIdOrderByVersionNoDesc(orderId)
+                .orElseThrow(() -> new NotFoundException("DEMO_NOT_FOUND", "Demo not found."));
+        if (!latestDemo.getId().equals(demo.getId())) {
+            throw new BusinessException("DEMO_NOT_LATEST", "Only the latest demo can be reviewed.");
+        }
         if (demo.getCustomerResponseStatus() != DemoResponseStatus.PENDING) {
             throw new BusinessException("DEMO_ALREADY_RESPONDED", "Demo feedback was already submitted.");
         }
@@ -487,40 +579,41 @@ public class CustomOrderService {
         if (order.getRemainingAmount().compareTo(BigDecimal.ZERO) <= 0) {
             throw new BusinessException("REMAINING_AMOUNT_INVALID", "Order has no remaining amount.");
         }
-        if (customOrderPaymentRepository.existsByCustomOrderIdAndPaymentStage(orderId, CustomPaymentStage.REMAINING)) {
-            throw new BusinessException("REMAINING_ALREADY_PAID", "Remaining payment already exists.");
-        }
+        CustomOrderPaymentEntity existingRemainingPayment = customOrderPaymentRepository
+                .findByCustomOrderIdAndPaymentStage(orderId, CustomPaymentStage.REMAINING)
+                .orElse(null);
 
         BigDecimal paidAmount = order.getRemainingAmount().setScale(2, RoundingMode.HALF_UP);
 
-        CustomOrderPaymentEntity payment = new CustomOrderPaymentEntity();
+        CustomOrderPaymentEntity payment = existingRemainingPayment == null
+                ? new CustomOrderPaymentEntity()
+                : existingRemainingPayment;
         payment.setCustomOrder(order);
         payment.setPaymentStage(CustomPaymentStage.REMAINING);
         payment.setPaymentMethod(request.paymentMethod().trim().toUpperCase());
         payment.setAmount(paidAmount);
-        payment.setPaymentStatus(PAYMENT_STATUS_PAID);
+        payment.setPaymentStatus(PAYMENT_STATUS_PENDING);
         payment.setTransactionRef(trimToNull(request.transactionRef()));
         payment.setPaymentProofUrl(trimToNull(request.paymentProof()));
         payment.setPaidAt(LocalDateTime.now());
-        payment.setNote("Remaining payment completed.");
+        payment.setNote("Customer submitted remaining payment proof. Waiting for verification.");
         customOrderPaymentRepository.save(payment);
 
         CustomOrderStatus fromStatus = order.getOrderStatus();
-        order.setPaymentStatus(PAYMENT_STATUS_PAID);
-        order.setRemainingAmount(BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP));
-        order.setOrderStatus(CustomOrderStatus.IN_PROGRESS);
+        order.setPaymentStatus(PAYMENT_STATUS_PARTIALLY_PAID);
+        order.setOrderStatus(CustomOrderStatus.WAITING_REMAINING_PAYMENT_VERIFICATION);
         customOrderRepository.save(order);
-        saveStatusHistory(order, fromStatus, order.getOrderStatus(), customer, "Remaining payment completed.");
+        saveStatusHistory(order, fromStatus, order.getOrderStatus(), customer, "Remaining payment submitted for verification.");
         auditLogService.logAction(
                 customerUserId,
-                "CUSTOM_ORDER_REMAINING_PAYMENT_COMPLETED",
+                "CUSTOM_ORDER_REMAINING_PAYMENT_SUBMITTED",
                 "CUSTOM_ORDER",
                 order.getId(),
                 "amount=" + paidAmount
         );
 
         log.info(
-                "Custom remaining payment created: actorUserId={}, orderId={}, amount={}",
+                "Custom remaining payment submitted: actorUserId={}, orderId={}, amount={}",
                 customerUserId,
                 orderId,
                 paidAmount
@@ -530,9 +623,91 @@ public class CustomOrderService {
     }
 
     @Transactional
+    public CustomOrderStatusResponse submitRefundInfo(Long orderId, SubmitRefundInfoRequest request, Long customerUserId) {
+        CustomOrderEntity order = customOrderRepository.findByIdAndCustomerUserId(orderId, customerUserId)
+                .orElseThrow(() -> new NotFoundException("ORDER_NOT_FOUND", "Custom order not found."));
+        UserEntity customer = getUserOrThrow(customerUserId);
+
+        if (order.getOrderStatus() != CustomOrderStatus.WAITING_REFUND_INFO) {
+            throw new BusinessException("INVALID_ORDER_STATUS", "Order is not waiting for refund info.");
+        }
+
+        order.setRefundBankName(request.refundBankName().trim());
+        order.setRefundAccountNumber(request.refundAccountNumber().trim());
+        order.setRefundAccountName(request.refundAccountName().trim());
+        order.setRefundRequestedAt(LocalDateTime.now());
+
+        CustomOrderStatus fromStatus = order.getOrderStatus();
+        order.setOrderStatus(CustomOrderStatus.WAITING_REFUND);
+        customOrderRepository.save(order);
+        saveStatusHistory(order, fromStatus, order.getOrderStatus(), customer, "Customer submitted refund bank info.");
+
+        return new CustomOrderStatusResponse(order.getId(), order.getOrderCode(), order.getOrderStatus());
+    }
+
+    @Transactional
+    public CustomOrderStatusResponse confirmRefund(Long orderId, Long actorUserId) {
+        CustomOrderEntity order = customOrderRepository.findById(orderId)
+                .orElseThrow(() -> new NotFoundException("ORDER_NOT_FOUND", "Custom order not found."));
+        UserEntity actor = getUserOrThrow(actorUserId);
+        if (order.getOrderStatus() != CustomOrderStatus.WAITING_REFUND) {
+            throw new BusinessException("INVALID_ORDER_STATUS", "Order is not waiting for refund.");
+        }
+
+        if (trimToNull(order.getRefundAccountNumber()) == null) {
+            throw new BusinessException("REFUND_INFO_MISSING", "Refund bank info is missing.");
+        }
+
+        CustomOrderStatus fromStatus = order.getOrderStatus();
+        order.setOrderStatus(CustomOrderStatus.REFUNDED);
+        order.setPaymentStatus(PAYMENT_STATUS_REFUNDED);
+        order.setRefundedAt(LocalDateTime.now());
+        order.setCanceledAt(order.getCanceledAt() == null ? LocalDateTime.now() : order.getCanceledAt());
+        customOrderRepository.save(order);
+        saveStatusHistory(order, fromStatus, order.getOrderStatus(), actor, "Admin confirmed refund transfer.");
+        return new CustomOrderStatusResponse(order.getId(), order.getOrderCode(), order.getOrderStatus());
+    }
+
+    @Transactional
+    public CustomOrderStatusResponse verifyRemainingPayment(Long orderId, VerifyRemainingPaymentRequest request, Long actorUserId) {
+        CustomOrderEntity order = customOrderRepository.findById(orderId)
+                .orElseThrow(() -> new NotFoundException("ORDER_NOT_FOUND", "Custom order not found."));
+        UserEntity actor = getUserOrThrow(actorUserId);
+        if (order.getOrderStatus() != CustomOrderStatus.WAITING_REMAINING_PAYMENT_VERIFICATION) {
+            throw new BusinessException("INVALID_ORDER_STATUS", "Order is not waiting for remaining payment verification.");
+        }
+
+        CustomOrderPaymentEntity payment = customOrderPaymentRepository
+                .findByCustomOrderIdAndPaymentStage(orderId, CustomPaymentStage.REMAINING)
+                .orElseThrow(() -> new NotFoundException("REMAINING_PAYMENT_NOT_FOUND", "Remaining payment not found."));
+
+        CustomOrderStatus fromStatus = order.getOrderStatus();
+        if (Boolean.TRUE.equals(request.received())) {
+            payment.setPaymentStatus(PAYMENT_STATUS_PAID);
+            payment.setNote(trimToNull(request.note()) == null
+                    ? "Remaining payment verified by admin."
+                    : request.note().trim());
+            order.setPaymentStatus(PAYMENT_STATUS_PAID);
+            order.setRemainingAmount(BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP));
+            order.setOrderStatus(CustomOrderStatus.DELIVERING);
+        } else {
+            payment.setPaymentStatus(PAYMENT_STATUS_FAILED);
+            payment.setNote(trimToNull(request.note()) == null
+                    ? "Remaining payment proof rejected by admin."
+                    : request.note().trim());
+            order.setOrderStatus(CustomOrderStatus.WAITING_REMAINING_PAYMENT);
+        }
+        customOrderPaymentRepository.save(payment);
+        customOrderRepository.save(order);
+        saveStatusHistory(order, fromStatus, order.getOrderStatus(), actor, trimToNull(request.note()));
+        return new CustomOrderStatusResponse(order.getId(), order.getOrderCode(), order.getOrderStatus());
+    }
+
+    @Transactional
     public CustomDeliveryResponse updateDelivery(Long orderId, UpdateCustomDeliveryRequest request, Long actorUserId) {
         CustomOrderEntity order = customOrderRepository.findById(orderId)
                 .orElseThrow(() -> new NotFoundException("ORDER_NOT_FOUND", "Custom order not found."));
+        UserEntity actor = getUserOrThrow(actorUserId);
         if (order.getOrderStatus() == CustomOrderStatus.CANCELED) {
             throw new BusinessException("ORDER_CANCELED", "Cannot update delivery for canceled order.");
         }
@@ -553,6 +728,13 @@ public class CustomOrderService {
             }
             if ("DELIVERED".equals(normalizedStatus)) {
                 delivery.setDeliveredTime(effectiveTime);
+                CustomOrderStatus fromStatus = order.getOrderStatus();
+                if (fromStatus != CustomOrderStatus.COMPLETED) {
+                    order.setOrderStatus(CustomOrderStatus.COMPLETED);
+                    order.setCompletedAt(LocalDateTime.now());
+                    customOrderRepository.save(order);
+                    saveStatusHistory(order, fromStatus, CustomOrderStatus.COMPLETED, actor, "Delivery confirmed.");
+                }
             }
         }
 
@@ -645,6 +827,12 @@ public class CustomOrderService {
                 order.getOrderCode(),
                 order.getSelectedFrameProduct().getId(),
                 order.getSelectedFrameProduct().getName(),
+                order.getShippingAddress().getReceiverName(),
+                order.getShippingAddress().getReceiverPhone(),
+                order.getShippingAddress().getAddressLine(),
+                order.getShippingAddress().getWard(),
+                order.getShippingAddress().getDistrict(),
+                order.getShippingAddress().getProvince(),
                 order.getOrderStatus(),
                 order.getPaymentStatus(),
                 order.getDepositAmount(),
@@ -656,6 +844,10 @@ public class CustomOrderService {
                 order.getFlowerInputImageUrl(),
                 order.getFlowerEvaluationStatus(),
                 order.getFlowerEvaluationNote(),
+                order.getRejectionReason(),
+                order.getRefundBankName(),
+                order.getRefundAccountNumber(),
+                order.getRefundAccountName(),
                 order.getDemoRevisionCount(),
                 order.getExtraRevisionFeeRate(),
                 order.getOrderedAt()
@@ -668,12 +860,61 @@ public class CustomOrderService {
                 demo.getCustomOrder().getId(),
                 demo.getVersionNo(),
                 demo.getDemoImageUrl(),
+                splitDemoImageUrls(demo),
                 demo.getDemoDescription(),
                 demo.getCustomerResponseStatus(),
                 demo.getCustomerFeedback(),
                 demo.getUploadedAt(),
                 demo.getRespondedAt()
         );
+    }
+
+    private List<String> normalizeDemoImages(CreateCustomDemoRequest request) {
+        List<String> normalized = new ArrayList<>();
+        if (request.getDemoImages() != null) {
+            for (String img : request.getDemoImages()) {
+                String value = trimToNull(img);
+                if (value != null) {
+                    normalized.add(value);
+                }
+            }
+        }
+        if (request.getDemoImageFile() != null && !request.getDemoImageFile().isEmpty()) {
+            normalized.add(localFileStorageService.saveCustomDemoImage(request.getDemoImageFile()));
+        }
+        if (request.getDemoImageFiles() != null) {
+            request.getDemoImageFiles().stream()
+                    .filter(file -> file != null && !file.isEmpty())
+                    .forEach(file -> normalized.add(localFileStorageService.saveCustomDemoImage(file)));
+        }
+        if (normalized.isEmpty()) {
+            String single = trimToNull(request.getDemoImage());
+            if (single != null) {
+                normalized.add(single);
+            }
+        }
+        if (normalized.isEmpty()) {
+            throw new BusinessException("DEMO_IMAGES_REQUIRED", "At least one demo image is required.");
+        }
+        if (normalized.size() > MAX_DEMO_IMAGES_PER_VERSION) {
+            throw new BusinessException("DEMO_IMAGES_EXCEEDED", "Too many demo images in one version.");
+        }
+        return normalized;
+    }
+
+    private String joinDemoImageUrls(List<String> images) {
+        return String.join("\n", images);
+    }
+
+    private List<String> splitDemoImageUrls(CustomDemoEntity demo) {
+        String raw = trimToNull(demo.getDemoImageUrls());
+        if (raw == null) {
+            return List.of(demo.getDemoImageUrl());
+        }
+        return Arrays.stream(raw.split("\\n"))
+                .map(this::trimToNull)
+                .filter(v -> v != null)
+                .toList();
     }
 
     private void validateFrameProduct(ProductEntity product) {

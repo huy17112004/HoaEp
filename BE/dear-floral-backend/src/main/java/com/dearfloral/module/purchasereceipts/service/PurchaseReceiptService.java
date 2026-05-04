@@ -122,6 +122,7 @@ public class PurchaseReceiptService {
         return toResponse(savedReceipt, savedItems);
     }
 
+    @Transactional(readOnly = true)
     public Page<PurchaseReceiptResponse> getReceipts(
             LocalDate fromDate,
             LocalDate toDate,

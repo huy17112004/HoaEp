@@ -45,6 +45,29 @@ public class LocalFileStorageService {
         return "/uploads/products/" + fileName;
     }
 
+    public String saveCustomDemoImage(MultipartFile file) {
+        if (file == null || file.isEmpty()) {
+            return null;
+        }
+
+        String originalFilename = file.getOriginalFilename();
+        String extension = extractExtension(originalFilename);
+        if (!ALLOWED_EXTENSIONS.contains(extension)) {
+            throw new BusinessException("INVALID_IMAGE_FORMAT", "Image format is not supported.");
+        }
+
+        String fileName = "custom-demo-" + UUID.randomUUID() + "." + extension;
+        Path uploadDir = resolveUploadDir().resolve("custom-demos");
+        Path target = uploadDir.resolve(fileName);
+        try {
+            Files.createDirectories(uploadDir);
+            Files.copy(file.getInputStream(), target, StandardCopyOption.REPLACE_EXISTING);
+        } catch (IOException ex) {
+            throw new BusinessException("FILE_STORAGE_ERROR", "Cannot store custom demo image.");
+        }
+        return "/uploads/custom-demos/" + fileName;
+    }
+
     public Path resolveUploadDir() {
         Path configuredPath = Path.of(fileStorageProperties.uploadDir());
         if (configuredPath.isAbsolute()) {

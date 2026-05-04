@@ -34,6 +34,9 @@ public class CustomDemoEntity extends BaseEntity {
     @Column(name = "demo_description", length = 1000)
     private String demoDescription;
 
+    @Column(name = "demo_image_urls", length = 4000)
+    private String demoImageUrls;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "customer_response_status", nullable = false, length = 50)
     private DemoResponseStatus customerResponseStatus;

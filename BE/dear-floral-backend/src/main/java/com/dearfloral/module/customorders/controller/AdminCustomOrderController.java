@@ -13,6 +13,8 @@ import com.dearfloral.module.customorders.dto.EvaluateFlowerInputRequest;
 import com.dearfloral.module.customorders.dto.EvaluateFlowerInputResponse;
 import com.dearfloral.module.customorders.dto.UpdateCustomDeliveryRequest;
 import com.dearfloral.module.customorders.dto.UpdateCustomOrderStatusRequest;
+import com.dearfloral.module.customorders.dto.VerifyDepositRequest;
+import com.dearfloral.module.customorders.dto.VerifyRemainingPaymentRequest;
 import com.dearfloral.module.customorders.service.CustomOrderService;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
@@ -26,6 +28,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.ModelAttribute;
 
 @RestController
 @RequestMapping("/api/admin/orders/custom")
@@ -66,6 +69,16 @@ public class AdminCustomOrderController {
         return ResponseEntity.ok(ApiResponse.success("CUSTOM_ORDER_STATUS_UPDATED", "Custom order status updated successfully.", data));
     }
 
+    @PatchMapping("/{orderId}/verify-deposit")
+    public ResponseEntity<ApiResponse<CustomOrderStatusResponse>> verifyDeposit(
+            @AuthenticationPrincipal UserPrincipal principal,
+            @PathVariable Long orderId,
+            @RequestBody VerifyDepositRequest request
+    ) {
+        CustomOrderStatusResponse data = customOrderService.verifyDeposit(orderId, request.accepted(), principal.getUserId());
+        return ResponseEntity.ok(ApiResponse.success("CUSTOM_ORDER_DEPOSIT_VERIFIED", "Deposit verification processed successfully.", data));
+    }
+
     @PatchMapping("/{orderId}/evaluate-flower-input")
     public ResponseEntity<ApiResponse<EvaluateFlowerInputResponse>> evaluateFlowerInput(
             @AuthenticationPrincipal UserPrincipal principal,
@@ -94,9 +107,28 @@ public class AdminCustomOrderController {
     public ResponseEntity<ApiResponse<CustomDemoResponse>> uploadDemo(
             @AuthenticationPrincipal UserPrincipal principal,
             @PathVariable Long orderId,
-            @Valid @RequestBody CreateCustomDemoRequest request
+            @Valid @ModelAttribute CreateCustomDemoRequest request
     ) {
         CustomDemoResponse data = customOrderService.uploadDemo(orderId, request, principal.getUserId());
         return ResponseEntity.ok(ApiResponse.success("CUSTOM_DEMO_UPLOADED", "Custom demo uploaded successfully.", data));
+    }
+
+    @PatchMapping("/{orderId}/confirm-refund")
+    public ResponseEntity<ApiResponse<CustomOrderStatusResponse>> confirmRefund(
+            @AuthenticationPrincipal UserPrincipal principal,
+            @PathVariable Long orderId
+    ) {
+        CustomOrderStatusResponse data = customOrderService.confirmRefund(orderId, principal.getUserId());
+        return ResponseEntity.ok(ApiResponse.success("CUSTOM_ORDER_REFUND_CONFIRMED", "Refund confirmed successfully.", data));
+    }
+
+    @PatchMapping("/{orderId}/verify-remaining-payment")
+    public ResponseEntity<ApiResponse<CustomOrderStatusResponse>> verifyRemainingPayment(
+            @AuthenticationPrincipal UserPrincipal principal,
+            @PathVariable Long orderId,
+            @Valid @RequestBody VerifyRemainingPaymentRequest request
+    ) {
+        CustomOrderStatusResponse data = customOrderService.verifyRemainingPayment(orderId, request, principal.getUserId());
+        return ResponseEntity.ok(ApiResponse.success("CUSTOM_ORDER_REMAINING_PAYMENT_VERIFIED", "Remaining payment verification processed successfully.", data));
     }
 }

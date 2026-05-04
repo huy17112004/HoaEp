@@ -9,9 +9,11 @@ import com.dearfloral.module.customorders.dto.CreateCustomOrderResponse;
 import com.dearfloral.module.customorders.dto.CreateRemainingPaymentRequest;
 import com.dearfloral.module.customorders.dto.CustomDemoResponse;
 import com.dearfloral.module.customorders.dto.CustomOrderResponse;
+import com.dearfloral.module.customorders.dto.CustomOrderStatusResponse;
 import com.dearfloral.module.customorders.dto.DemoFeedbackRequest;
 import com.dearfloral.module.customorders.dto.DemoFeedbackResponse;
 import com.dearfloral.module.customorders.dto.RemainingPaymentResponse;
+import com.dearfloral.module.customorders.dto.SubmitRefundInfoRequest;
 import com.dearfloral.module.customorders.service.CustomOrderService;
 import jakarta.validation.Valid;
 import java.util.List;
@@ -20,6 +22,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -45,6 +48,16 @@ public class CustomOrderController {
         ensureCustomer(principal);
         CreateCustomOrderResponse data = customOrderService.createOrder(principal.getUserId(), request);
         return ResponseEntity.ok(ApiResponse.success("CUSTOM_ORDER_CREATED", "Custom order created successfully.", data));
+    }
+
+    @PostMapping("/{orderId}/confirm-deposit")
+    public ResponseEntity<ApiResponse<CustomOrderStatusResponse>> confirmDeposit(
+            @AuthenticationPrincipal UserPrincipal principal,
+            @PathVariable Long orderId
+    ) {
+        ensureCustomer(principal);
+        CustomOrderStatusResponse data = customOrderService.confirmDeposit(orderId, principal.getUserId());
+        return ResponseEntity.ok(ApiResponse.success("CUSTOM_ORDER_DEPOSIT_CONFIRMED", "Deposit transfer confirmed successfully.", data));
     }
 
     @GetMapping("/my-orders")
@@ -79,6 +92,21 @@ public class CustomOrderController {
         return ResponseEntity.ok(ApiResponse.success(
                 "CUSTOM_ORDER_REMAINING_PAYMENT_COMPLETED",
                 "Remaining payment completed successfully.",
+                data
+        ));
+    }
+
+    @PostMapping("/{orderId}/refund-info")
+    public ResponseEntity<ApiResponse<CustomOrderStatusResponse>> submitRefundInfo(
+            @AuthenticationPrincipal UserPrincipal principal,
+            @PathVariable Long orderId,
+            @Valid @RequestBody SubmitRefundInfoRequest request
+    ) {
+        ensureCustomer(principal);
+        CustomOrderStatusResponse data = customOrderService.submitRefundInfo(orderId, request, principal.getUserId());
+        return ResponseEntity.ok(ApiResponse.success(
+                "CUSTOM_ORDER_REFUND_INFO_SUBMITTED",
+                "Refund info submitted successfully.",
                 data
         ));
     }

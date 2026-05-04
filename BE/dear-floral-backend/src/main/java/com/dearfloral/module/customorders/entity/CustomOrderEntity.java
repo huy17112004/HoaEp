@@ -69,7 +69,7 @@ public class CustomOrderEntity extends BaseEntity {
     @Column(name = "requested_delivery_date")
     private LocalDate requestedDeliveryDate;
 
-    @Column(name = "flower_input_image_url", nullable = false, length = 500)
+    @Column(name = "flower_input_image_url", length = 500)
     private String flowerInputImageUrl;
 
     @Enumerated(EnumType.STRING)
@@ -78,6 +78,24 @@ public class CustomOrderEntity extends BaseEntity {
 
     @Column(name = "flower_evaluation_note", length = 500)
     private String flowerEvaluationNote;
+
+    @Column(name = "rejection_reason", length = 1000)
+    private String rejectionReason;
+
+    @Column(name = "refund_bank_name", length = 150)
+    private String refundBankName;
+
+    @Column(name = "refund_account_number", length = 50)
+    private String refundAccountNumber;
+
+    @Column(name = "refund_account_name", length = 150)
+    private String refundAccountName;
+
+    @Column(name = "refund_requested_at")
+    private LocalDateTime refundRequestedAt;
+
+    @Column(name = "refunded_at")
+    private LocalDateTime refundedAt;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "assigned_staff_id")

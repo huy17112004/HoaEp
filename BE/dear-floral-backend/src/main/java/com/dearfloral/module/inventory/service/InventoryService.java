@@ -14,6 +14,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class InventoryService {
@@ -24,6 +25,7 @@ public class InventoryService {
         this.inventoryItemRepository = inventoryItemRepository;
     }
 
+    @Transactional(readOnly = true)
     public Page<InventoryItemResponse> getInventoryItems(
             ProductKind productKind,
             Boolean isSellableDirectly,
