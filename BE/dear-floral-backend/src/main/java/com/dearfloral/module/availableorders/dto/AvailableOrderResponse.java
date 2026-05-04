@@ -8,10 +8,17 @@ import java.util.List;
 public record AvailableOrderResponse(
         Long orderId,
         String orderCode,
+        String shippingReceiverName,
+        String shippingReceiverPhone,
+        String shippingAddressLine,
+        String shippingWard,
+        String shippingDistrict,
+        String shippingProvince,
         AvailableOrderStatus orderStatus,
         String paymentStatus,
         BigDecimal totalAmount,
         LocalDateTime orderedAt,
-        List<AvailableOrderItemResponse> items
+        List<AvailableOrderItemResponse> items,
+        String rejectionReason
 ) {
 }

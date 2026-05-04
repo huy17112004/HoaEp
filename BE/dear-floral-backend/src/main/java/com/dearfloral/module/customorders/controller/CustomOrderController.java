@@ -14,7 +14,9 @@ import com.dearfloral.module.customorders.dto.DemoFeedbackRequest;
 import com.dearfloral.module.customorders.dto.DemoFeedbackResponse;
 import com.dearfloral.module.customorders.dto.RemainingPaymentResponse;
 import com.dearfloral.module.customorders.dto.SubmitRefundInfoRequest;
+import com.dearfloral.module.customorders.dto.UploadCustomFlowerImageResponse;
 import com.dearfloral.module.customorders.service.CustomOrderService;
+import com.dearfloral.module.products.service.LocalFileStorageService;
 import jakarta.validation.Valid;
 import java.util.List;
 import org.springframework.data.domain.Page;
@@ -29,15 +31,21 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/api/orders/custom")
 public class CustomOrderController {
 
     private final CustomOrderService customOrderService;
+    private final LocalFileStorageService localFileStorageService;
 
-    public CustomOrderController(CustomOrderService customOrderService) {
+    public CustomOrderController(
+            CustomOrderService customOrderService,
+            LocalFileStorageService localFileStorageService
+    ) {
         this.customOrderService = customOrderService;
+        this.localFileStorageService = localFileStorageService;
     }
 
     @PostMapping
@@ -134,6 +142,21 @@ public class CustomOrderController {
         ensureCustomer(principal);
         DemoFeedbackResponse data = customOrderService.feedbackDemo(orderId, demoId, request, principal.getUserId());
         return ResponseEntity.ok(ApiResponse.success("CUSTOM_DEMO_FEEDBACK_SUBMITTED", "Demo feedback submitted successfully.", data));
+    }
+
+    @PostMapping("/flower-image")
+    public ResponseEntity<ApiResponse<UploadCustomFlowerImageResponse>> uploadFlowerImage(
+            @AuthenticationPrincipal UserPrincipal principal,
+            @RequestParam("file") MultipartFile file
+    ) {
+        ensureCustomer(principal);
+        String imageUrl = localFileStorageService.saveProductImage(file);
+        UploadCustomFlowerImageResponse data = new UploadCustomFlowerImageResponse(imageUrl);
+        return ResponseEntity.ok(ApiResponse.success(
+                "CUSTOM_FLOWER_IMAGE_UPLOADED",
+                "Custom flower image uploaded successfully.",
+                data
+        ));
     }
 
     private void ensureCustomer(UserPrincipal principal) {

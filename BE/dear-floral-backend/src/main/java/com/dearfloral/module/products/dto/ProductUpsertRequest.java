@@ -29,7 +29,6 @@ public class ProductUpsertRequest {
     @DecimalMin(value = "0.0", inclusive = false, message = "price must be greater than 0.")
     private BigDecimal price;
 
-    @NotNull(message = "categoryId is required.")
     private Long categoryId;
 
     @NotNull(message = "productKind is required.")

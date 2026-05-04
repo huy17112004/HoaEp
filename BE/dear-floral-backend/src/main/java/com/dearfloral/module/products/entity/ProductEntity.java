@@ -25,8 +25,8 @@ import lombok.Setter;
 @Table(name = "products")
 public class ProductEntity extends BaseEntity {
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "category_id", nullable = false)
+    @ManyToOne(fetch = FetchType.LAZY, optional = true)
+    @JoinColumn(name = "category_id", nullable = true)
     private ProductCategoryEntity category;
 
     @Column(name = "name", nullable = false, length = 200)

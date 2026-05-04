@@ -322,14 +322,35 @@ public class AvailableOrderService {
                         item.getSubtotal()
                 ))
                 .toList();
+        
+        // Get rejection reason if order is canceled
+        String rejectionReason = null;
+        if (order.getOrderStatus() == AvailableOrderStatus.CANCELED) {
+            List<AvailableOrderStatusHistoryEntity> histories = availableOrderStatusHistoryRepository
+                    .findByAvailableOrderIdOrderByChangedAtDesc(order.getId());
+            for (AvailableOrderStatusHistoryEntity history : histories) {
+                if (history.getToStatus() == AvailableOrderStatus.CANCELED && history.getReason() != null) {
+                    rejectionReason = history.getReason();
+                    break;
+                }
+            }
+        }
+        
         return new AvailableOrderResponse(
                 order.getId(),
                 order.getOrderCode(),
+                order.getShippingAddress() != null ? order.getShippingAddress().getReceiverName() : null,
+                order.getShippingAddress() != null ? order.getShippingAddress().getReceiverPhone() : null,
+                order.getShippingAddress() != null ? order.getShippingAddress().getAddressLine() : null,
+                order.getShippingAddress() != null ? order.getShippingAddress().getWard() : null,
+                order.getShippingAddress() != null ? order.getShippingAddress().getDistrict() : null,
+                order.getShippingAddress() != null ? order.getShippingAddress().getProvince() : null,
                 order.getOrderStatus(),
                 order.getPaymentStatus(),
                 order.getTotalAmount(),
                 order.getOrderedAt(),
-                itemResponses
+                itemResponses,
+                rejectionReason
         );
     }
 

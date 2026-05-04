@@ -65,6 +65,7 @@ public class DashboardService {
                 pendingAvailableOrders,
                 pendingCustomOrders,
                 demosPendingApproval,
+                LOW_INVENTORY_THRESHOLD,
                 lowInventoryProducts,
                 recentOrdersToday
         );

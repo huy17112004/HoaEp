@@ -126,9 +126,7 @@ public class ProductService {
 
     @Transactional
     public ProductResponse createProduct(ProductUpsertRequest request, Long actorUserId) {
-        ProductCategoryEntity category = productCategoryRepository.findById(request.getCategoryId())
-                .orElseThrow(() -> new NotFoundException("CATEGORY_NOT_FOUND", "Category not found."));
-        validateCategoryAssignable(category, false);
+        ProductCategoryEntity category = resolveCategoryForUpsert(request, null);
 
         String slug = resolveSlug(request.getSlug(), request.getName());
         if (productRepository.existsBySlug(slug)) {
@@ -147,11 +145,7 @@ public class ProductService {
     public ProductResponse updateProduct(Long productId, ProductUpsertRequest request, Long actorUserId) {
         ProductEntity product = productRepository.findById(productId)
                 .orElseThrow(() -> new NotFoundException("PRODUCT_NOT_FOUND", "Product not found."));
-        ProductCategoryEntity category = productCategoryRepository.findById(request.getCategoryId())
-                .orElseThrow(() -> new NotFoundException("CATEGORY_NOT_FOUND", "Category not found."));
-        boolean isKeepingCurrentCategory = product.getCategory() != null
-                && product.getCategory().getId().equals(request.getCategoryId());
-        validateCategoryAssignable(category, isKeepingCurrentCategory);
+        ProductCategoryEntity category = resolveCategoryForUpsert(request, product);
 
         String slug = resolveSlug(request.getSlug(), request.getName());
         if (productRepository.existsBySlugAndIdNot(slug, productId)) {
@@ -278,6 +272,24 @@ public class ProductService {
         }
     }
 
+    private ProductCategoryEntity resolveCategoryForUpsert(ProductUpsertRequest request, ProductEntity existingProduct) {
+        if (request.getProductKind() == ProductKind.FRAME_OPTION) {
+            return null;
+        }
+
+        if (request.getCategoryId() == null) {
+            throw new BusinessException("CATEGORY_REQUIRED", "categoryId is required for standard_product.");
+        }
+
+        ProductCategoryEntity category = productCategoryRepository.findById(request.getCategoryId())
+                .orElseThrow(() -> new NotFoundException("CATEGORY_NOT_FOUND", "Category not found."));
+        boolean isKeepingCurrentCategory = existingProduct != null
+                && existingProduct.getCategory() != null
+                && existingProduct.getCategory().getId().equals(request.getCategoryId());
+        validateCategoryAssignable(category, isKeepingCurrentCategory);
+        return category;
+    }
+
     private void validateCategoryAssignable(ProductCategoryEntity category, boolean allowInactiveIfCurrentCategory) {
         if (!"ACTIVE".equalsIgnoreCase(category.getStatus()) && !allowInactiveIfCurrentCategory) {
             throw new BusinessException("CATEGORY_INACTIVE", "Cannot assign product to inactive category.");
@@ -302,8 +314,8 @@ public class ProductService {
     private ProductResponse toResponse(ProductEntity entity) {
         return new ProductResponse(
                 entity.getId(),
-                entity.getCategory().getId(),
-                entity.getCategory().getName(),
+                entity.getCategory() != null ? entity.getCategory().getId() : null,
+                entity.getCategory() != null ? entity.getCategory().getName() : null,
                 entity.getName(),
                 entity.getSlug(),
                 entity.getDescription(),
