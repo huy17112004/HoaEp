@@ -12,9 +12,11 @@ import com.dearfloral.module.auth.repository.UserRepository;
 import com.dearfloral.module.availableorders.dto.AvailableOrderItemResponse;
 import com.dearfloral.module.availableorders.dto.AvailableOrderResponse;
 import com.dearfloral.module.availableorders.dto.AvailableOrderStatusResponse;
+import com.dearfloral.module.availableorders.dto.ConfirmAvailableOrderPaymentRequest;
 import com.dearfloral.module.availableorders.dto.CreateAvailableOrderItemRequest;
 import com.dearfloral.module.availableorders.dto.CreateAvailableOrderRequest;
 import com.dearfloral.module.availableorders.dto.UpdateAvailableOrderStatusRequest;
+import com.dearfloral.module.availableorders.dto.VerifyAvailableOrderPaymentRequest;
 import com.dearfloral.module.availableorders.entity.AvailableOrderEntity;
 import com.dearfloral.module.availableorders.entity.AvailableOrderItemEntity;
 import com.dearfloral.module.availableorders.entity.AvailableOrderPaymentEntity;
@@ -29,6 +31,7 @@ import com.dearfloral.module.inventory.repository.InventoryItemRepository;
 import com.dearfloral.module.inventory.repository.InventoryTransactionRepository;
 import com.dearfloral.module.products.entity.ProductEntity;
 import com.dearfloral.module.products.repository.ProductRepository;
+import com.dearfloral.module.notifications.service.OrderEmailNotificationService;
 import com.dearfloral.module.reports.service.AuditLogService;
 import com.dearfloral.module.users.entity.CustomerAddressEntity;
 import com.dearfloral.module.users.repository.CustomerAddressRepository;
@@ -51,7 +54,10 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class AvailableOrderService {
 
-    private static final String PAID_STATUS = "PAID";
+    private static final String PAYMENT_STATUS_UNPAID = "UNPAID";
+    private static final String PAYMENT_STATUS_PENDING = "PENDING";
+    private static final String PAYMENT_STATUS_PAID = "PAID";
+    private static final String PAYMENT_STATUS_FAILED = "FAILED";
     private static final Map<AvailableOrderStatus, EnumSet<AvailableOrderStatus>> ALLOWED_TRANSITIONS = Map.of(
             AvailableOrderStatus.RECEIVED, EnumSet.of(AvailableOrderStatus.PROCESSING, AvailableOrderStatus.CANCELED),
             AvailableOrderStatus.PROCESSING, EnumSet.of(AvailableOrderStatus.SHIPPING, AvailableOrderStatus.CANCELED),
@@ -70,6 +76,7 @@ public class AvailableOrderService {
     private final UserRepository userRepository;
     private final CustomerAddressRepository customerAddressRepository;
     private final AuditLogService auditLogService;
+    private final OrderEmailNotificationService orderEmailNotificationService;
 
     public AvailableOrderService(
             AvailableOrderRepository availableOrderRepository,
@@ -81,7 +88,8 @@ public class AvailableOrderService {
             InventoryTransactionRepository inventoryTransactionRepository,
             UserRepository userRepository,
             CustomerAddressRepository customerAddressRepository,
-            AuditLogService auditLogService
+            AuditLogService auditLogService,
+            OrderEmailNotificationService orderEmailNotificationService
     ) {
         this.availableOrderRepository = availableOrderRepository;
         this.availableOrderItemRepository = availableOrderItemRepository;
@@ -93,6 +101,7 @@ public class AvailableOrderService {
         this.userRepository = userRepository;
         this.customerAddressRepository = customerAddressRepository;
         this.auditLogService = auditLogService;
+        this.orderEmailNotificationService = orderEmailNotificationService;
     }
 
     @Transactional
@@ -125,7 +134,7 @@ public class AvailableOrderService {
         order.setCustomerUser(customer);
         order.setShippingAddress(shippingAddress);
         order.setOrderStatus(AvailableOrderStatus.RECEIVED);
-        order.setPaymentStatus(PAID_STATUS);
+        order.setPaymentStatus(PAYMENT_STATUS_UNPAID);
         order.setTotalAmount(totalAmount);
         order.setOrderedAt(LocalDateTime.now());
         order.setNote(request.note() == null ? null : request.note().trim());
@@ -159,11 +168,11 @@ public class AvailableOrderService {
         payment.setAvailableOrder(savedOrder);
         payment.setPaymentMethod(request.paymentMethod().trim().toUpperCase());
         payment.setAmount(totalAmount);
-        payment.setPaymentStatus(PAID_STATUS);
-        payment.setTransactionRef(request.transactionRef() == null ? null : request.transactionRef().trim());
-        payment.setPaymentProofUrl(request.paymentProofUrl() == null ? null : request.paymentProofUrl().trim());
-        payment.setPaidAt(LocalDateTime.now());
-        payment.setNote("Payment captured on order creation.");
+        payment.setPaymentStatus(PAYMENT_STATUS_PENDING);
+        payment.setTransactionRef(null);
+        payment.setPaymentProofUrl(null);
+        payment.setPaidAt(null);
+        payment.setNote("Awaiting customer transfer confirmation.");
         availableOrderPaymentRepository.save(payment);
 
         AvailableOrderStatusHistoryEntity statusHistory = new AvailableOrderStatusHistoryEntity();
@@ -174,6 +183,7 @@ public class AvailableOrderService {
         statusHistory.setChangedAt(LocalDateTime.now());
         statusHistory.setReason("Order created.");
         availableOrderStatusHistoryRepository.save(statusHistory);
+        notifyAvailableOrderStep(savedOrder, AvailableOrderStatus.RECEIVED, AvailableOrderStatus.RECEIVED, PAYMENT_STATUS_PENDING, "Order created.");
 
         return toOrderResponse(savedOrder, orderItems);
     }
@@ -190,6 +200,9 @@ public class AvailableOrderService {
 
         AvailableOrderStatus currentStatus = order.getOrderStatus();
         AvailableOrderStatus nextStatus = request.status();
+        if (nextStatus == AvailableOrderStatus.PROCESSING && !PAYMENT_STATUS_PAID.equalsIgnoreCase(order.getPaymentStatus())) {
+            throw new BusinessException("PAYMENT_NOT_VERIFIED", "Cannot process order before payment is verified.");
+        }
         if (!ALLOWED_TRANSITIONS.getOrDefault(currentStatus, EnumSet.noneOf(AvailableOrderStatus.class)).contains(nextStatus)) {
             throw new BusinessException("INVALID_ORDER_STATUS_TRANSITION", "Invalid available order status transition.");
         }
@@ -211,6 +224,7 @@ public class AvailableOrderService {
         statusHistory.setChangedAt(LocalDateTime.now());
         statusHistory.setReason(request.reason() == null ? null : request.reason().trim());
         availableOrderStatusHistoryRepository.save(statusHistory);
+        notifyAvailableOrderStep(savedOrder, currentStatus, nextStatus, savedOrder.getPaymentStatus(), request.reason());
         auditLogService.logAction(
                 actorUserId,
                 "AVAILABLE_ORDER_STATUS_UPDATED",
@@ -220,6 +234,99 @@ public class AvailableOrderService {
         );
 
         return new AvailableOrderStatusResponse(savedOrder.getId(), savedOrder.getOrderCode(), savedOrder.getOrderStatus());
+    }
+
+    @Transactional
+    public AvailableOrderStatusResponse confirmPayment(
+            Long orderId,
+            ConfirmAvailableOrderPaymentRequest request,
+            Long customerUserId
+    ) {
+        AvailableOrderEntity order = availableOrderRepository.findByIdAndCustomerUserId(orderId, customerUserId)
+                .orElseThrow(() -> new NotFoundException("ORDER_NOT_FOUND", "Order not found."));
+        UserEntity customer = getUserOrThrow(customerUserId);
+
+        if (order.getOrderStatus() != AvailableOrderStatus.RECEIVED) {
+            throw new BusinessException("INVALID_ORDER_STATUS", "Order is not awaiting payment confirmation.");
+        }
+
+        AvailableOrderPaymentEntity payment = availableOrderPaymentRepository
+                .findByAvailableOrderIdOrderByCreatedAtDesc(orderId)
+                .stream()
+                .findFirst()
+                .orElseThrow(() -> new NotFoundException("PAYMENT_NOT_FOUND", "Order payment record not found."));
+
+        payment.setPaymentMethod("BANK_TRANSFER");
+        payment.setPaymentStatus(PAYMENT_STATUS_PENDING);
+        payment.setTransactionRef(request == null || request.transactionRef() == null ? null : request.transactionRef().trim());
+        payment.setPaymentProofUrl(request == null || request.paymentProofUrl() == null ? null : request.paymentProofUrl().trim());
+        payment.setNote("Customer confirmed transfer. Waiting staff/admin verification.");
+        availableOrderPaymentRepository.save(payment);
+
+        order.setPaymentStatus(PAYMENT_STATUS_PENDING);
+        availableOrderRepository.save(order);
+        notifyAvailableOrderStep(order, order.getOrderStatus(), order.getOrderStatus(), PAYMENT_STATUS_PENDING, "Customer confirmed transfer. Waiting verification.");
+
+        auditLogService.logAction(
+                customerUserId,
+                "AVAILABLE_ORDER_PAYMENT_CONFIRMED",
+                "AVAILABLE_ORDER",
+                order.getId(),
+                "orderStatus=" + order.getOrderStatus()
+        );
+
+        return new AvailableOrderStatusResponse(order.getId(), order.getOrderCode(), order.getOrderStatus());
+    }
+
+    @Transactional
+    public AvailableOrderStatusResponse verifyPayment(
+            Long orderId,
+            VerifyAvailableOrderPaymentRequest request,
+            Long actorUserId
+    ) {
+        AvailableOrderEntity order = availableOrderRepository.findById(orderId)
+                .orElseThrow(() -> new NotFoundException("ORDER_NOT_FOUND", "Order not found."));
+        if (order.getOrderStatus() != AvailableOrderStatus.RECEIVED) {
+            throw new BusinessException("INVALID_ORDER_STATUS", "Order is not in payment verification stage.");
+        }
+
+        AvailableOrderPaymentEntity payment = availableOrderPaymentRepository
+                .findByAvailableOrderIdOrderByCreatedAtDesc(orderId)
+                .stream()
+                .findFirst()
+                .orElseThrow(() -> new NotFoundException("PAYMENT_NOT_FOUND", "Order payment record not found."));
+
+        if (Boolean.TRUE.equals(request.received())) {
+            payment.setPaymentStatus(PAYMENT_STATUS_PAID);
+            payment.setPaidAt(LocalDateTime.now());
+            payment.setNote(request.note() == null || request.note().isBlank()
+                    ? "Payment verified by admin/staff."
+                    : request.note().trim());
+            order.setPaymentStatus(PAYMENT_STATUS_PAID);
+        } else {
+            payment.setPaymentStatus(PAYMENT_STATUS_FAILED);
+            payment.setPaidAt(null);
+            payment.setNote(request.note() == null || request.note().isBlank()
+                    ? "Payment proof rejected. Customer needs to transfer again."
+                    : request.note().trim());
+            order.setPaymentStatus(PAYMENT_STATUS_UNPAID);
+        }
+        availableOrderPaymentRepository.save(payment);
+        availableOrderRepository.save(order);
+        String note = request.note() == null || request.note().isBlank()
+                ? (Boolean.TRUE.equals(request.received()) ? "Payment verified by admin/staff." : "Payment proof rejected.")
+                : request.note().trim();
+        notifyAvailableOrderStep(order, order.getOrderStatus(), order.getOrderStatus(), order.getPaymentStatus(), note);
+
+        auditLogService.logAction(
+                actorUserId,
+                "AVAILABLE_ORDER_PAYMENT_VERIFIED",
+                "AVAILABLE_ORDER",
+                order.getId(),
+                "received=" + request.received()
+        );
+
+        return new AvailableOrderStatusResponse(order.getId(), order.getOrderCode(), order.getOrderStatus());
     }
 
     public AvailableOrderResponse getOrderDetailForCustomer(Long customerUserId, Long orderId) {
@@ -358,6 +465,25 @@ public class AvailableOrderService {
         String timestamp = DateTimeFormatter.ofPattern("yyyyMMddHHmmss").format(LocalDateTime.now());
         int random = ThreadLocalRandom.current().nextInt(100, 999);
         return "AO-" + timestamp + "-" + random;
+    }
+
+    private void notifyAvailableOrderStep(
+            AvailableOrderEntity order,
+            AvailableOrderStatus fromStatus,
+            AvailableOrderStatus toStatus,
+            String paymentStatus,
+            String reason
+    ) {
+        orderEmailNotificationService.sendAvailableOrderStepEmail(
+                order.getCustomerUser() == null ? null : order.getCustomerUser().getEmail(),
+                order.getCustomerUser() == null ? null : order.getCustomerUser().getFullName(),
+                order.getOrderCode(),
+                fromStatus == null ? null : fromStatus.name(),
+                toStatus == null ? null : toStatus.name(),
+                paymentStatus,
+                order.getTotalAmount(),
+                reason
+        );
     }
 
     private record PendingOrderItem(

@@ -67,6 +67,7 @@ public class ReportService {
                 EnumSet.of(
                         CustomOrderStatus.DEPOSITED,
                         CustomOrderStatus.WAITING_FLOWER_REVIEW,
+                        CustomOrderStatus.WAITING_FLOWER_RECEIPT,
                         CustomOrderStatus.IN_PROGRESS,
                         CustomOrderStatus.WAITING_DEMO_FEEDBACK,
                         CustomOrderStatus.WAITING_REMAINING_PAYMENT

@@ -45,9 +45,11 @@ D:\HoaEpProject\BE\dear-floral-backend\src\main\java\com\dearfloral\module\avail
 D:\HoaEpProject\BE\dear-floral-backend\src\main\java\com\dearfloral\module\availableorders\dto\AvailableOrderItemResponse.java
 D:\HoaEpProject\BE\dear-floral-backend\src\main\java\com\dearfloral\module\availableorders\dto\AvailableOrderResponse.java
 D:\HoaEpProject\BE\dear-floral-backend\src\main\java\com\dearfloral\module\availableorders\dto\AvailableOrderStatusResponse.java
+D:\HoaEpProject\BE\dear-floral-backend\src\main\java\com\dearfloral\module\availableorders\dto\ConfirmAvailableOrderPaymentRequest.java
 D:\HoaEpProject\BE\dear-floral-backend\src\main\java\com\dearfloral\module\availableorders\dto\CreateAvailableOrderItemRequest.java
 D:\HoaEpProject\BE\dear-floral-backend\src\main\java\com\dearfloral\module\availableorders\dto\CreateAvailableOrderRequest.java
 D:\HoaEpProject\BE\dear-floral-backend\src\main\java\com\dearfloral\module\availableorders\dto\UpdateAvailableOrderStatusRequest.java
+D:\HoaEpProject\BE\dear-floral-backend\src\main\java\com\dearfloral\module\availableorders\dto\VerifyAvailableOrderPaymentRequest.java
 D:\HoaEpProject\BE\dear-floral-backend\src\main\java\com\dearfloral\module\availableorders\entity\AvailableOrderEntity.java
 D:\HoaEpProject\BE\dear-floral-backend\src\main\java\com\dearfloral\module\availableorders\entity\AvailableOrderItemEntity.java
 D:\HoaEpProject\BE\dear-floral-backend\src\main\java\com\dearfloral\module\availableorders\entity\AvailableOrderPaymentEntity.java
@@ -119,6 +121,7 @@ D:\HoaEpProject\BE\dear-floral-backend\src\main\java\com\dearfloral\module\inven
 D:\HoaEpProject\BE\dear-floral-backend\src\main\java\com\dearfloral\module\inventory\repository\InventoryItemRepository.java
 D:\HoaEpProject\BE\dear-floral-backend\src\main\java\com\dearfloral\module\inventory\repository\InventoryTransactionRepository.java
 D:\HoaEpProject\BE\dear-floral-backend\src\main\java\com\dearfloral\module\inventory\service\InventoryService.java
+D:\HoaEpProject\BE\dear-floral-backend\src\main\java\com\dearfloral\module\notifications\service\OrderEmailNotificationService.java
 D:\HoaEpProject\BE\dear-floral-backend\src\main\java\com\dearfloral\module\products\controller\AdminProductController.java
 D:\HoaEpProject\BE\dear-floral-backend\src\main\java\com\dearfloral\module\products\controller\ProductController.java
 D:\HoaEpProject\BE\dear-floral-backend\src\main\java\com\dearfloral\module\products\dto\ProductResponse.java

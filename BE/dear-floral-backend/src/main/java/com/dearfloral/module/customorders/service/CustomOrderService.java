@@ -48,6 +48,7 @@ import com.dearfloral.module.inventory.repository.InventoryTransactionRepository
 import com.dearfloral.module.products.entity.ProductEntity;
 import com.dearfloral.module.products.service.LocalFileStorageService;
 import com.dearfloral.module.products.repository.ProductRepository;
+import com.dearfloral.module.notifications.service.OrderEmailNotificationService;
 import com.dearfloral.module.reports.service.AuditLogService;
 import com.dearfloral.module.users.entity.CustomerAddressEntity;
 import com.dearfloral.module.users.repository.CustomerAddressRepository;
@@ -93,7 +94,9 @@ public class CustomOrderService {
         ALLOWED_TRANSITIONS.put(CustomOrderStatus.DEPOSITED,
                 EnumSet.of(CustomOrderStatus.WAITING_FLOWER_REVIEW, CustomOrderStatus.CANCELED));
         ALLOWED_TRANSITIONS.put(CustomOrderStatus.WAITING_FLOWER_REVIEW,
-                EnumSet.of(CustomOrderStatus.IN_PROGRESS, CustomOrderStatus.WAITING_REFUND_INFO, CustomOrderStatus.CANCELED));
+                EnumSet.of(CustomOrderStatus.WAITING_FLOWER_RECEIPT, CustomOrderStatus.WAITING_REFUND_INFO, CustomOrderStatus.CANCELED));
+        ALLOWED_TRANSITIONS.put(CustomOrderStatus.WAITING_FLOWER_RECEIPT,
+                EnumSet.of(CustomOrderStatus.IN_PROGRESS, CustomOrderStatus.CANCELED));
         ALLOWED_TRANSITIONS.put(CustomOrderStatus.IN_PROGRESS, EnumSet.of(
                 CustomOrderStatus.WAITING_DEMO_FEEDBACK,
                 CustomOrderStatus.WAITING_REMAINING_PAYMENT,
@@ -128,6 +131,7 @@ public class CustomOrderService {
     private final CustomDeliveryRecordRepository customDeliveryRecordRepository;
     private final LocalFileStorageService localFileStorageService;
     private final AuditLogService auditLogService;
+    private final OrderEmailNotificationService orderEmailNotificationService;
 
     public CustomOrderService(
             CustomOrderRepository customOrderRepository,
@@ -141,7 +145,8 @@ public class CustomOrderService {
             CustomerAddressRepository customerAddressRepository,
             CustomDeliveryRecordRepository customDeliveryRecordRepository,
             LocalFileStorageService localFileStorageService,
-            AuditLogService auditLogService
+            AuditLogService auditLogService,
+            OrderEmailNotificationService orderEmailNotificationService
     ) {
         this.customOrderRepository = customOrderRepository;
         this.customDemoRepository = customDemoRepository;
@@ -155,6 +160,7 @@ public class CustomOrderService {
         this.customDeliveryRecordRepository = customDeliveryRecordRepository;
         this.localFileStorageService = localFileStorageService;
         this.auditLogService = auditLogService;
+        this.orderEmailNotificationService = orderEmailNotificationService;
     }
 
     @Transactional
@@ -408,7 +414,7 @@ public class CustomOrderService {
         order.setFlowerEvaluationNote(trimToNull(request.evaluationNote()));
 
         if (request.evaluationStatus() == FlowerEvaluationStatus.PASS) {
-            nextStatus = CustomOrderStatus.IN_PROGRESS;
+            nextStatus = CustomOrderStatus.WAITING_FLOWER_RECEIPT;
         } else {
             if (trimToNull(request.evaluationNote()) == null) {
                 throw new BusinessException("EVALUATION_NOTE_REQUIRED", "Rejection reason is required when flower input fails.");
@@ -420,7 +426,10 @@ public class CustomOrderService {
 
         order.setOrderStatus(nextStatus);
         customOrderRepository.save(order);
-        saveStatusHistory(order, fromStatus, nextStatus, actor, "Flower input evaluated.");
+        String statusReason = request.evaluationStatus() == FlowerEvaluationStatus.PASS
+                ? "Flower image passed. Waiting customer to ship flowers to store."
+                : "Flower input evaluated and failed.";
+        saveStatusHistory(order, fromStatus, nextStatus, actor, statusReason);
         auditLogService.logAction(
                 actorUserId,
                 "CUSTOM_ORDER_FLOWER_EVALUATED",
@@ -1003,6 +1012,16 @@ public class CustomOrderService {
         history.setChangedAt(LocalDateTime.now());
         history.setReason(reason);
         customOrderStatusHistoryRepository.save(history);
+        orderEmailNotificationService.sendCustomOrderStepEmail(
+                order.getCustomerUser() == null ? null : order.getCustomerUser().getEmail(),
+                order.getCustomerUser() == null ? null : order.getCustomerUser().getFullName(),
+                order.getOrderCode(),
+                fromStatus == null ? null : fromStatus.name(),
+                toStatus == null ? null : toStatus.name(),
+                order.getPaymentStatus(),
+                order.getTotalAmount(),
+                reason
+        );
     }
 
     private UserEntity getUserOrThrow(Long userId) {

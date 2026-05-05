@@ -7,6 +7,7 @@ import com.dearfloral.config.security.UserPrincipal;
 import com.dearfloral.module.availableorders.dto.AvailableOrderResponse;
 import com.dearfloral.module.availableorders.dto.AvailableOrderStatusResponse;
 import com.dearfloral.module.availableorders.dto.UpdateAvailableOrderStatusRequest;
+import com.dearfloral.module.availableorders.dto.VerifyAvailableOrderPaymentRequest;
 import com.dearfloral.module.availableorders.service.AvailableOrderService;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
@@ -58,6 +59,20 @@ public class AdminAvailableOrderController {
         return ResponseEntity.ok(ApiResponse.success(
                 "AVAILABLE_ORDER_STATUS_UPDATED",
                 "Available order status updated successfully.",
+                data
+        ));
+    }
+
+    @PatchMapping("/{orderId}/verify-payment")
+    public ResponseEntity<ApiResponse<AvailableOrderStatusResponse>> verifyPayment(
+            @AuthenticationPrincipal UserPrincipal principal,
+            @PathVariable Long orderId,
+            @Valid @RequestBody VerifyAvailableOrderPaymentRequest request
+    ) {
+        AvailableOrderStatusResponse data = availableOrderService.verifyPayment(orderId, request, principal.getUserId());
+        return ResponseEntity.ok(ApiResponse.success(
+                "AVAILABLE_ORDER_PAYMENT_VERIFIED",
+                "Available order payment verification processed successfully.",
                 data
         ));
     }

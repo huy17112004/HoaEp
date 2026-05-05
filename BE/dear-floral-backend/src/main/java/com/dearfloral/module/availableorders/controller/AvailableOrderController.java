@@ -5,6 +5,8 @@ import com.dearfloral.common.api.PageMeta;
 import com.dearfloral.common.enums.RoleCode;
 import com.dearfloral.config.security.UserPrincipal;
 import com.dearfloral.module.availableorders.dto.AvailableOrderResponse;
+import com.dearfloral.module.availableorders.dto.AvailableOrderStatusResponse;
+import com.dearfloral.module.availableorders.dto.ConfirmAvailableOrderPaymentRequest;
 import com.dearfloral.module.availableorders.dto.CreateAvailableOrderRequest;
 import com.dearfloral.module.availableorders.service.AvailableOrderService;
 import jakarta.validation.Valid;
@@ -68,6 +70,17 @@ public class AvailableOrderController {
                 RoleCode.valueOf(principal.getRole())
         );
         return ResponseEntity.ok(ApiResponse.success("AVAILABLE_ORDER_DETAIL_FETCHED", "Available order detail fetched successfully.", data));
+    }
+
+    @PostMapping("/{orderId}/confirm-payment")
+    public ResponseEntity<ApiResponse<AvailableOrderStatusResponse>> confirmPayment(
+            @AuthenticationPrincipal UserPrincipal principal,
+            @PathVariable Long orderId,
+            @Valid @RequestBody(required = false) ConfirmAvailableOrderPaymentRequest request
+    ) {
+        ensureCustomer(principal);
+        AvailableOrderStatusResponse data = availableOrderService.confirmPayment(orderId, request, principal.getUserId());
+        return ResponseEntity.ok(ApiResponse.success("AVAILABLE_ORDER_PAYMENT_CONFIRMED", "Payment transfer confirmed successfully.", data));
     }
 
     private void ensureCustomer(UserPrincipal principal) {
