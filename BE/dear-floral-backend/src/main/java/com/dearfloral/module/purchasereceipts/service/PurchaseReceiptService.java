@@ -2,6 +2,7 @@ package com.dearfloral.module.purchasereceipts.service;
 
 import com.dearfloral.common.api.PageMeta;
 import com.dearfloral.common.enums.InventoryTransactionType;
+import com.dearfloral.common.exception.BusinessException;
 import com.dearfloral.common.exception.NotFoundException;
 import com.dearfloral.module.auth.entity.UserEntity;
 import com.dearfloral.module.auth.repository.UserRepository;
@@ -15,6 +16,7 @@ import com.dearfloral.module.reports.service.AuditLogService;
 import com.dearfloral.module.purchasereceipts.dto.CreatePurchaseReceiptRequest;
 import com.dearfloral.module.purchasereceipts.dto.PurchaseReceiptItemResponse;
 import com.dearfloral.module.purchasereceipts.dto.PurchaseReceiptResponse;
+import com.dearfloral.module.purchasereceipts.dto.UpdatePurchaseReceiptRequest;
 import com.dearfloral.module.purchasereceipts.entity.PurchaseReceiptEntity;
 import com.dearfloral.module.purchasereceipts.entity.PurchaseReceiptItemEntity;
 import com.dearfloral.module.purchasereceipts.repository.PurchaseReceiptItemRepository;
@@ -25,8 +27,10 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -122,6 +126,71 @@ public class PurchaseReceiptService {
         return toResponse(savedReceipt, savedItems);
     }
 
+    @Transactional
+    public PurchaseReceiptResponse updateReceipt(Long receiptId, UpdatePurchaseReceiptRequest request, Long actorUserId) {
+        UserEntity actor = userRepository.findById(actorUserId)
+                .orElseThrow(() -> new NotFoundException("USER_NOT_FOUND", "User not found."));
+
+        PurchaseReceiptEntity receipt = purchaseReceiptRepository.findById(receiptId)
+                .orElseThrow(() -> new NotFoundException("PURCHASE_RECEIPT_NOT_FOUND", "Purchase receipt not found."));
+
+        List<PurchaseReceiptItemEntity> existingItems = purchaseReceiptItemRepository.findByPurchaseReceiptId(receiptId);
+
+        Map<Long, Integer> oldQtyByProductId = new HashMap<>();
+        for (PurchaseReceiptItemEntity existing : existingItems) {
+            oldQtyByProductId.merge(existing.getProduct().getId(), existing.getQuantity(), Integer::sum);
+        }
+
+        Map<Long, Integer> newQtyByProductId = new HashMap<>();
+        List<PurchaseReceiptItemEntity> updatedItems = new ArrayList<>();
+        for (var itemRequest : request.items()) {
+            ProductEntity product = productRepository.findById(itemRequest.productId())
+                    .orElseThrow(() -> new NotFoundException("PRODUCT_NOT_FOUND", "Product not found."));
+            BigDecimal subtotal = itemRequest.unitCost().multiply(BigDecimal.valueOf(itemRequest.quantity()));
+
+            PurchaseReceiptItemEntity item = new PurchaseReceiptItemEntity();
+            item.setPurchaseReceipt(receipt);
+            item.setProduct(product);
+            item.setQuantity(itemRequest.quantity());
+            item.setUnitCost(itemRequest.unitCost());
+            item.setSubtotal(subtotal);
+            updatedItems.add(item);
+
+            newQtyByProductId.merge(product.getId(), itemRequest.quantity(), Integer::sum);
+        }
+
+        for (Map.Entry<Long, Integer> entry : oldQtyByProductId.entrySet()) {
+            Long productId = entry.getKey();
+            int oldQty = entry.getValue();
+            int newQty = newQtyByProductId.getOrDefault(productId, 0);
+            applyInventoryDelta(receipt, actor, productId, newQty - oldQty);
+        }
+        for (Map.Entry<Long, Integer> entry : newQtyByProductId.entrySet()) {
+            Long productId = entry.getKey();
+            if (oldQtyByProductId.containsKey(productId)) {
+                continue;
+            }
+            applyInventoryDelta(receipt, actor, productId, entry.getValue());
+        }
+
+        receipt.setReceiptDate(request.receiptDate());
+        receipt.setNote(request.note() == null ? null : request.note().trim());
+        purchaseReceiptRepository.save(receipt);
+
+        purchaseReceiptItemRepository.deleteAll(existingItems);
+        List<PurchaseReceiptItemEntity> savedItems = purchaseReceiptItemRepository.saveAll(updatedItems);
+
+        auditLogService.logAction(
+                actorUserId,
+                "PURCHASE_RECEIPT_UPDATED",
+                "PURCHASE_RECEIPT",
+                receipt.getId(),
+                "items=" + request.items().size()
+        );
+
+        return toResponse(receipt, savedItems);
+    }
+
     @Transactional(readOnly = true)
     public Page<PurchaseReceiptResponse> getReceipts(
             LocalDate fromDate,
@@ -189,5 +258,44 @@ public class PurchaseReceiptService {
         String timestamp = DateTimeFormatter.ofPattern("yyyyMMddHHmmss").format(LocalDateTime.now());
         int random = ThreadLocalRandom.current().nextInt(100, 999);
         return "PR-" + timestamp + "-" + random;
+    }
+
+    private void applyInventoryDelta(
+            PurchaseReceiptEntity receipt,
+            UserEntity actor,
+            Long productId,
+            int delta
+    ) {
+        if (delta == 0) {
+            return;
+        }
+
+        ProductEntity product = productRepository.findById(productId)
+                .orElseThrow(() -> new NotFoundException("PRODUCT_NOT_FOUND", "Product not found."));
+
+        InventoryItemEntity inventoryItem = inventoryItemRepository.findWithLockByProductId(productId)
+                .orElseGet(() -> {
+                    InventoryItemEntity newItem = new InventoryItemEntity();
+                    newItem.setProduct(product);
+                    newItem.setQuantityOnHand(0);
+                    return newItem;
+                });
+
+        int nextQuantity = inventoryItem.getQuantityOnHand() + delta;
+        if (nextQuantity < 0) {
+            throw new BusinessException("INSUFFICIENT_INVENTORY", "Insufficient inventory for receipt update.");
+        }
+        inventoryItem.setQuantityOnHand(nextQuantity);
+        inventoryItemRepository.save(inventoryItem);
+
+        InventoryTransactionEntity transaction = new InventoryTransactionEntity();
+        transaction.setProduct(product);
+        transaction.setTransactionType(InventoryTransactionType.ADJUST);
+        transaction.setQuantityChange(delta);
+        transaction.setReferenceType("PURCHASE_RECEIPT");
+        transaction.setReferenceId(receipt.getId());
+        transaction.setCreatedBy(actor);
+        transaction.setNote("Adjust by purchase receipt update " + receipt.getReceiptCode());
+        inventoryTransactionRepository.save(transaction);
     }
 }

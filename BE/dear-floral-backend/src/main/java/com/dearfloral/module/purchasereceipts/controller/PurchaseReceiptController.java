@@ -5,14 +5,18 @@ import com.dearfloral.common.api.PageMeta;
 import com.dearfloral.config.security.UserPrincipal;
 import com.dearfloral.module.purchasereceipts.dto.CreatePurchaseReceiptRequest;
 import com.dearfloral.module.purchasereceipts.dto.PurchaseReceiptResponse;
+import com.dearfloral.module.purchasereceipts.dto.UpdatePurchaseReceiptRequest;
 import com.dearfloral.module.purchasereceipts.service.PurchaseReceiptService;
 import jakarta.validation.Valid;
 import java.time.LocalDate;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -35,6 +39,17 @@ public class PurchaseReceiptController {
     ) {
         PurchaseReceiptResponse data = purchaseReceiptService.createReceipt(request, principal.getUserId());
         return ResponseEntity.ok(ApiResponse.success("PURCHASE_RECEIPT_CREATED", "Purchase receipt created successfully.", data));
+    }
+
+    @PutMapping("/{receiptId}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<PurchaseReceiptResponse>> updateReceipt(
+            @AuthenticationPrincipal UserPrincipal principal,
+            @PathVariable Long receiptId,
+            @Valid @RequestBody UpdatePurchaseReceiptRequest request
+    ) {
+        PurchaseReceiptResponse data = purchaseReceiptService.updateReceipt(receiptId, request, principal.getUserId());
+        return ResponseEntity.ok(ApiResponse.success("PURCHASE_RECEIPT_UPDATED", "Purchase receipt updated successfully.", data));
     }
 
     @GetMapping

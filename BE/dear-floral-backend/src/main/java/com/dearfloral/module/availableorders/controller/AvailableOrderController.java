@@ -8,6 +8,7 @@ import com.dearfloral.module.availableorders.dto.AvailableOrderResponse;
 import com.dearfloral.module.availableorders.dto.AvailableOrderStatusResponse;
 import com.dearfloral.module.availableorders.dto.ConfirmAvailableOrderPaymentRequest;
 import com.dearfloral.module.availableorders.dto.CreateAvailableOrderRequest;
+import com.dearfloral.module.availableorders.dto.SubmitAvailableOrderRefundInfoRequest;
 import com.dearfloral.module.availableorders.service.AvailableOrderService;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
@@ -81,6 +82,17 @@ public class AvailableOrderController {
         ensureCustomer(principal);
         AvailableOrderStatusResponse data = availableOrderService.confirmPayment(orderId, request, principal.getUserId());
         return ResponseEntity.ok(ApiResponse.success("AVAILABLE_ORDER_PAYMENT_CONFIRMED", "Payment transfer confirmed successfully.", data));
+    }
+
+    @PostMapping("/{orderId}/refund-info")
+    public ResponseEntity<ApiResponse<AvailableOrderStatusResponse>> submitRefundInfo(
+            @AuthenticationPrincipal UserPrincipal principal,
+            @PathVariable Long orderId,
+            @Valid @RequestBody SubmitAvailableOrderRefundInfoRequest request
+    ) {
+        ensureCustomer(principal);
+        AvailableOrderStatusResponse data = availableOrderService.submitRefundInfo(orderId, request, principal.getUserId());
+        return ResponseEntity.ok(ApiResponse.success("AVAILABLE_ORDER_REFUND_INFO_SUBMITTED", "Refund info submitted successfully.", data));
     }
 
     private void ensureCustomer(UserPrincipal principal) {

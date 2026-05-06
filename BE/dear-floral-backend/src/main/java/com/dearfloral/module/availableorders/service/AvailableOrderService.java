@@ -15,6 +15,7 @@ import com.dearfloral.module.availableorders.dto.AvailableOrderStatusResponse;
 import com.dearfloral.module.availableorders.dto.ConfirmAvailableOrderPaymentRequest;
 import com.dearfloral.module.availableorders.dto.CreateAvailableOrderItemRequest;
 import com.dearfloral.module.availableorders.dto.CreateAvailableOrderRequest;
+import com.dearfloral.module.availableorders.dto.SubmitAvailableOrderRefundInfoRequest;
 import com.dearfloral.module.availableorders.dto.UpdateAvailableOrderStatusRequest;
 import com.dearfloral.module.availableorders.dto.VerifyAvailableOrderPaymentRequest;
 import com.dearfloral.module.availableorders.entity.AvailableOrderEntity;
@@ -58,10 +59,18 @@ public class AvailableOrderService {
     private static final String PAYMENT_STATUS_PENDING = "PENDING";
     private static final String PAYMENT_STATUS_PAID = "PAID";
     private static final String PAYMENT_STATUS_FAILED = "FAILED";
+    private static final String PAYMENT_STATUS_REFUNDED = "REFUNDED";
     private static final Map<AvailableOrderStatus, EnumSet<AvailableOrderStatus>> ALLOWED_TRANSITIONS = Map.of(
-            AvailableOrderStatus.RECEIVED, EnumSet.of(AvailableOrderStatus.PROCESSING, AvailableOrderStatus.CANCELED),
+            AvailableOrderStatus.RECEIVED, EnumSet.of(
+                    AvailableOrderStatus.PROCESSING,
+                    AvailableOrderStatus.CANCELED,
+                    AvailableOrderStatus.WAITING_REFUND_INFO
+            ),
             AvailableOrderStatus.PROCESSING, EnumSet.of(AvailableOrderStatus.SHIPPING, AvailableOrderStatus.CANCELED),
             AvailableOrderStatus.SHIPPING, EnumSet.of(AvailableOrderStatus.COMPLETED),
+            AvailableOrderStatus.WAITING_REFUND_INFO, EnumSet.of(AvailableOrderStatus.WAITING_REFUND, AvailableOrderStatus.CANCELED),
+            AvailableOrderStatus.WAITING_REFUND, EnumSet.of(AvailableOrderStatus.REFUNDED, AvailableOrderStatus.CANCELED),
+            AvailableOrderStatus.REFUNDED, EnumSet.noneOf(AvailableOrderStatus.class),
             AvailableOrderStatus.COMPLETED, EnumSet.noneOf(AvailableOrderStatus.class),
             AvailableOrderStatus.CANCELED, EnumSet.noneOf(AvailableOrderStatus.class)
     );
@@ -200,6 +209,12 @@ public class AvailableOrderService {
 
         AvailableOrderStatus currentStatus = order.getOrderStatus();
         AvailableOrderStatus nextStatus = request.status();
+        boolean moveToRefundFlow = currentStatus == AvailableOrderStatus.RECEIVED
+                && nextStatus == AvailableOrderStatus.CANCELED
+                && PAYMENT_STATUS_PAID.equalsIgnoreCase(order.getPaymentStatus());
+        if (moveToRefundFlow) {
+            nextStatus = AvailableOrderStatus.WAITING_REFUND_INFO;
+        }
         if (nextStatus == AvailableOrderStatus.PROCESSING && !PAYMENT_STATUS_PAID.equalsIgnoreCase(order.getPaymentStatus())) {
             throw new BusinessException("PAYMENT_NOT_VERIFIED", "Cannot process order before payment is verified.");
         }
@@ -213,6 +228,10 @@ public class AvailableOrderService {
         }
         if (nextStatus == AvailableOrderStatus.CANCELED) {
             order.setCanceledAt(LocalDateTime.now());
+        }
+        if (nextStatus == AvailableOrderStatus.WAITING_REFUND_INFO) {
+            order.setRejectionReason(request.reason() == null ? null : request.reason().trim());
+            order.setCanceledAt(order.getCanceledAt() == null ? LocalDateTime.now() : order.getCanceledAt());
         }
         AvailableOrderEntity savedOrder = availableOrderRepository.save(order);
 
@@ -234,6 +253,73 @@ public class AvailableOrderService {
         );
 
         return new AvailableOrderStatusResponse(savedOrder.getId(), savedOrder.getOrderCode(), savedOrder.getOrderStatus());
+    }
+
+    @Transactional
+    public AvailableOrderStatusResponse submitRefundInfo(
+            Long orderId,
+            SubmitAvailableOrderRefundInfoRequest request,
+            Long customerUserId
+    ) {
+        AvailableOrderEntity order = availableOrderRepository.findByIdAndCustomerUserId(orderId, customerUserId)
+                .orElseThrow(() -> new NotFoundException("ORDER_NOT_FOUND", "Order not found."));
+        UserEntity customer = getUserOrThrow(customerUserId);
+
+        if (order.getOrderStatus() != AvailableOrderStatus.WAITING_REFUND_INFO) {
+            throw new BusinessException("INVALID_ORDER_STATUS", "Order is not waiting for refund info.");
+        }
+
+        order.setRefundBankName(request.refundBankName().trim());
+        order.setRefundAccountNumber(request.refundAccountNumber().trim());
+        order.setRefundAccountName(request.refundAccountName().trim());
+        order.setRefundRequestedAt(LocalDateTime.now());
+
+        AvailableOrderStatus fromStatus = order.getOrderStatus();
+        order.setOrderStatus(AvailableOrderStatus.WAITING_REFUND);
+        availableOrderRepository.save(order);
+
+        AvailableOrderStatusHistoryEntity statusHistory = new AvailableOrderStatusHistoryEntity();
+        statusHistory.setAvailableOrder(order);
+        statusHistory.setFromStatus(fromStatus);
+        statusHistory.setToStatus(order.getOrderStatus());
+        statusHistory.setChangedBy(customer);
+        statusHistory.setChangedAt(LocalDateTime.now());
+        statusHistory.setReason("Customer submitted refund bank info.");
+        availableOrderStatusHistoryRepository.save(statusHistory);
+
+        return new AvailableOrderStatusResponse(order.getId(), order.getOrderCode(), order.getOrderStatus());
+    }
+
+    @Transactional
+    public AvailableOrderStatusResponse confirmRefund(Long orderId, Long actorUserId) {
+        AvailableOrderEntity order = availableOrderRepository.findById(orderId)
+                .orElseThrow(() -> new NotFoundException("ORDER_NOT_FOUND", "Order not found."));
+        UserEntity actor = getUserOrThrow(actorUserId);
+
+        if (order.getOrderStatus() != AvailableOrderStatus.WAITING_REFUND) {
+            throw new BusinessException("INVALID_ORDER_STATUS", "Order is not waiting for refund.");
+        }
+        if (order.getRefundAccountNumber() == null || order.getRefundAccountNumber().isBlank()) {
+            throw new BusinessException("REFUND_INFO_MISSING", "Refund bank info is missing.");
+        }
+
+        AvailableOrderStatus fromStatus = order.getOrderStatus();
+        order.setOrderStatus(AvailableOrderStatus.REFUNDED);
+        order.setPaymentStatus(PAYMENT_STATUS_REFUNDED);
+        order.setRefundedAt(LocalDateTime.now());
+        order.setCanceledAt(order.getCanceledAt() == null ? LocalDateTime.now() : order.getCanceledAt());
+        availableOrderRepository.save(order);
+
+        AvailableOrderStatusHistoryEntity statusHistory = new AvailableOrderStatusHistoryEntity();
+        statusHistory.setAvailableOrder(order);
+        statusHistory.setFromStatus(fromStatus);
+        statusHistory.setToStatus(order.getOrderStatus());
+        statusHistory.setChangedBy(actor);
+        statusHistory.setChangedAt(LocalDateTime.now());
+        statusHistory.setReason("Admin confirmed refund transfer.");
+        availableOrderStatusHistoryRepository.save(statusHistory);
+
+        return new AvailableOrderStatusResponse(order.getId(), order.getOrderCode(), order.getOrderStatus());
     }
 
     @Transactional
@@ -430,19 +516,6 @@ public class AvailableOrderService {
                 ))
                 .toList();
         
-        // Get rejection reason if order is canceled
-        String rejectionReason = null;
-        if (order.getOrderStatus() == AvailableOrderStatus.CANCELED) {
-            List<AvailableOrderStatusHistoryEntity> histories = availableOrderStatusHistoryRepository
-                    .findByAvailableOrderIdOrderByChangedAtDesc(order.getId());
-            for (AvailableOrderStatusHistoryEntity history : histories) {
-                if (history.getToStatus() == AvailableOrderStatus.CANCELED && history.getReason() != null) {
-                    rejectionReason = history.getReason();
-                    break;
-                }
-            }
-        }
-        
         return new AvailableOrderResponse(
                 order.getId(),
                 order.getOrderCode(),
@@ -457,7 +530,10 @@ public class AvailableOrderService {
                 order.getTotalAmount(),
                 order.getOrderedAt(),
                 itemResponses,
-                rejectionReason
+                order.getRejectionReason(),
+                order.getRefundBankName(),
+                order.getRefundAccountNumber(),
+                order.getRefundAccountName()
         );
     }
 

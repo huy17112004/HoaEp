@@ -19,6 +19,9 @@ public record AvailableOrderResponse(
         BigDecimal totalAmount,
         LocalDateTime orderedAt,
         List<AvailableOrderItemResponse> items,
-        String rejectionReason
+        String rejectionReason,
+        String refundBankName,
+        String refundAccountNumber,
+        String refundAccountName
 ) {
 }

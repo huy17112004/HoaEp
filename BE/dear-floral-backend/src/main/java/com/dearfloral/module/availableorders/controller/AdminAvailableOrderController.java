@@ -76,4 +76,17 @@ public class AdminAvailableOrderController {
                 data
         ));
     }
+
+    @PatchMapping("/{orderId}/confirm-refund")
+    public ResponseEntity<ApiResponse<AvailableOrderStatusResponse>> confirmRefund(
+            @AuthenticationPrincipal UserPrincipal principal,
+            @PathVariable Long orderId
+    ) {
+        AvailableOrderStatusResponse data = availableOrderService.confirmRefund(orderId, principal.getUserId());
+        return ResponseEntity.ok(ApiResponse.success(
+                "AVAILABLE_ORDER_REFUND_CONFIRMED",
+                "Available order refund confirmed successfully.",
+                data
+        ));
+    }
 }
