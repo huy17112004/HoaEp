@@ -1,6 +1,8 @@
 package com.dearfloral.module.notifications.service;
 
+import jakarta.mail.internet.InternetAddress;
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import lombok.extern.slf4j.Slf4j;
@@ -19,17 +21,20 @@ public class OrderEmailNotificationService {
     private final JavaMailSender mailSender;
     private final boolean mailEnabled;
     private final String mailFromName;
+    private final String mailFromAddress;
     private final String frontendOrderUrl;
 
     public OrderEmailNotificationService(
             JavaMailSender mailSender,
             @Value("${app.mail.enabled:false}") boolean mailEnabled,
             @Value("${app.mail.from-name:Dear Floral}") String mailFromName,
+            @Value("${spring.mail.username:}") String mailFromAddress,
             @Value("${app.mail.frontend-order-url:http://localhost:5173/account/orders}") String frontendOrderUrl
     ) {
         this.mailSender = mailSender;
         this.mailEnabled = mailEnabled;
         this.mailFromName = mailFromName;
+        this.mailFromAddress = mailFromAddress;
         this.frontendOrderUrl = frontendOrderUrl;
     }
 
@@ -78,6 +83,9 @@ public class OrderEmailNotificationService {
         try {
             var message = mailSender.createMimeMessage();
             var helper = new MimeMessageHelper(message, "UTF-8");
+            if (!isBlank(mailFromAddress)) {
+                helper.setFrom(new InternetAddress(mailFromAddress, mailFromName, StandardCharsets.UTF_8.name()));
+            }
             helper.setTo(customerEmail);
             helper.setSubject("[Dear Floral] Cập nhật trạng thái " + orderCode);
             helper.setText(buildHtml(customerName, orderType, orderCode, previousStep, currentStep, paymentStatus, totalAmount, reason), true);
