@@ -14,6 +14,7 @@ import com.dearfloral.common.exception.NotFoundException;
 import com.dearfloral.module.auth.entity.UserEntity;
 import com.dearfloral.module.auth.repository.UserRepository;
 import com.dearfloral.module.customorders.dto.CreateCustomDemoRequest;
+import com.dearfloral.module.customorders.dto.ConfirmReceivedFlowerRequest;
 import com.dearfloral.module.customorders.dto.CreateCustomOrderRequest;
 import com.dearfloral.module.customorders.dto.CreateCustomOrderResponse;
 import com.dearfloral.module.customorders.dto.CreateRemainingPaymentRequest;
@@ -96,7 +97,9 @@ public class CustomOrderService {
         ALLOWED_TRANSITIONS.put(CustomOrderStatus.WAITING_FLOWER_REVIEW,
                 EnumSet.of(CustomOrderStatus.WAITING_FLOWER_RECEIPT, CustomOrderStatus.WAITING_REFUND_INFO, CustomOrderStatus.CANCELED));
         ALLOWED_TRANSITIONS.put(CustomOrderStatus.WAITING_FLOWER_RECEIPT,
-                EnumSet.of(CustomOrderStatus.IN_PROGRESS, CustomOrderStatus.CANCELED));
+                EnumSet.of(CustomOrderStatus.WAITING_RECEIVED_FLOWER_REVIEW, CustomOrderStatus.CANCELED));
+        ALLOWED_TRANSITIONS.put(CustomOrderStatus.WAITING_RECEIVED_FLOWER_REVIEW,
+                EnumSet.of(CustomOrderStatus.IN_PROGRESS, CustomOrderStatus.WAITING_REFUND_INFO, CustomOrderStatus.CANCELED));
         ALLOWED_TRANSITIONS.put(CustomOrderStatus.IN_PROGRESS, EnumSet.of(
                 CustomOrderStatus.WAITING_DEMO_FEEDBACK,
                 CustomOrderStatus.WAITING_REMAINING_PAYMENT,
@@ -450,6 +453,98 @@ public class CustomOrderService {
     }
 
     @Transactional
+    public CustomOrderStatusResponse confirmReceivedFlower(
+            Long orderId,
+            ConfirmReceivedFlowerRequest request,
+            Long actorUserId
+    ) {
+        UserEntity actor = getUserOrThrow(actorUserId);
+        CustomOrderEntity order = customOrderRepository.findById(orderId)
+                .orElseThrow(() -> new NotFoundException("ORDER_NOT_FOUND", "Custom order not found."));
+
+        if (order.getOrderStatus() != CustomOrderStatus.WAITING_FLOWER_RECEIPT) {
+            throw new BusinessException("INVALID_ORDER_STATUS", "Order is not waiting for received flower confirmation.");
+        }
+        if (request.receivedFlowerImageFile() == null || request.receivedFlowerImageFile().isEmpty()) {
+            throw new BusinessException("RECEIVED_FLOWER_IMAGE_REQUIRED", "Received flower image is required.");
+        }
+
+        String receivedFlowerImageUrl = localFileStorageService.saveProductImage(request.receivedFlowerImageFile());
+        CustomOrderStatus fromStatus = order.getOrderStatus();
+        order.setReceivedFlowerImageUrl(receivedFlowerImageUrl);
+        order.setReceivedFlowerEvaluationStatus(FlowerEvaluationStatus.PENDING);
+        order.setReceivedFlowerEvaluationNote(trimToNull(request.note()));
+        order.setOrderStatus(CustomOrderStatus.WAITING_RECEIVED_FLOWER_REVIEW);
+        customOrderRepository.save(order);
+        saveStatusHistory(order, fromStatus, order.getOrderStatus(), actor, "Store received flower and is waiting for actual flower review.");
+
+        return new CustomOrderStatusResponse(order.getId(), order.getOrderCode(), order.getOrderStatus());
+    }
+
+    @Transactional
+    public EvaluateFlowerInputResponse evaluateReceivedFlower(
+            Long orderId,
+            EvaluateFlowerInputRequest request,
+            Long actorUserId
+    ) {
+        if (request.evaluationStatus() == FlowerEvaluationStatus.PENDING) {
+            throw new BusinessException("INVALID_EVALUATION_STATUS", "evaluationStatus must be PASS or FAIL.");
+        }
+
+        UserEntity actor = getUserOrThrow(actorUserId);
+        CustomOrderEntity order = customOrderRepository.findById(orderId)
+                .orElseThrow(() -> new NotFoundException("ORDER_NOT_FOUND", "Custom order not found."));
+
+        if (order.getOrderStatus() != CustomOrderStatus.WAITING_RECEIVED_FLOWER_REVIEW) {
+            throw new BusinessException("INVALID_ORDER_STATUS", "Order is not ready for received flower evaluation.");
+        }
+        if (trimToNull(order.getReceivedFlowerImageUrl()) == null) {
+            throw new BusinessException("RECEIVED_FLOWER_IMAGE_REQUIRED", "Received flower image is required before evaluation.");
+        }
+
+        CustomOrderStatus fromStatus = order.getOrderStatus();
+        CustomOrderStatus nextStatus;
+        order.setReceivedFlowerEvaluationStatus(request.evaluationStatus());
+        order.setReceivedFlowerEvaluationNote(trimToNull(request.evaluationNote()));
+
+        if (request.evaluationStatus() == FlowerEvaluationStatus.PASS) {
+            nextStatus = CustomOrderStatus.IN_PROGRESS;
+        } else {
+            if (trimToNull(request.evaluationNote()) == null) {
+                throw new BusinessException("EVALUATION_NOTE_REQUIRED", "Rejection reason is required when received flower evaluation fails.");
+            }
+            nextStatus = CustomOrderStatus.WAITING_REFUND_INFO;
+            order.setRejectionReason(trimToNull(request.evaluationNote()));
+            restoreReservedFrame(order, actor);
+        }
+
+        order.setOrderStatus(nextStatus);
+        customOrderRepository.save(order);
+        saveStatusHistory(
+                order,
+                fromStatus,
+                nextStatus,
+                actor,
+                request.evaluationStatus() == FlowerEvaluationStatus.PASS
+                        ? "Received flower passed actual review. Order moved to in progress."
+                        : "Received flower evaluated and failed."
+        );
+        auditLogService.logAction(
+                actorUserId,
+                "CUSTOM_ORDER_RECEIVED_FLOWER_EVALUATED",
+                "CUSTOM_ORDER",
+                order.getId(),
+                "evaluationStatus=" + request.evaluationStatus() + ",nextStatus=" + nextStatus
+        );
+
+        return new EvaluateFlowerInputResponse(
+                order.getId(),
+                order.getReceivedFlowerEvaluationStatus(),
+                order.getOrderStatus()
+        );
+    }
+
+    @Transactional
     public CustomDemoResponse uploadDemo(Long orderId, CreateCustomDemoRequest request, Long actorUserId) {
         UserEntity actor = getUserOrThrow(actorUserId);
         CustomOrderEntity order = customOrderRepository.findById(orderId)
@@ -457,6 +552,9 @@ public class CustomOrderService {
 
         if (order.getOrderStatus() == CustomOrderStatus.CANCELED || order.getOrderStatus() == CustomOrderStatus.COMPLETED) {
             throw new BusinessException("INVALID_ORDER_STATUS", "Cannot upload demo for this order status.");
+        }
+        if (order.getOrderStatus() != CustomOrderStatus.IN_PROGRESS && order.getOrderStatus() != CustomOrderStatus.WAITING_DEMO_FEEDBACK) {
+            throw new BusinessException("INVALID_ORDER_STATUS", "Order is not in progress for demo upload.");
         }
         if (order.getFlowerEvaluationStatus() != FlowerEvaluationStatus.PASS) {
             throw new BusinessException("FLOWER_NOT_PASSED", "Flower input must pass evaluation before demo upload.");
@@ -853,6 +951,9 @@ public class CustomOrderService {
                 order.getFlowerInputImageUrl(),
                 order.getFlowerEvaluationStatus(),
                 order.getFlowerEvaluationNote(),
+                order.getReceivedFlowerImageUrl(),
+                order.getReceivedFlowerEvaluationStatus(),
+                order.getReceivedFlowerEvaluationNote(),
                 order.getRejectionReason(),
                 order.getRefundBankName(),
                 order.getRefundAccountNumber(),

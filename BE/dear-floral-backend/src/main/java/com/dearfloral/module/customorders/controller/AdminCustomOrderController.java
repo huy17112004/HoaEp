@@ -5,6 +5,7 @@ import com.dearfloral.common.api.PageMeta;
 import com.dearfloral.common.enums.CustomOrderStatus;
 import com.dearfloral.config.security.UserPrincipal;
 import com.dearfloral.module.customorders.dto.CreateCustomDemoRequest;
+import com.dearfloral.module.customorders.dto.ConfirmReceivedFlowerRequest;
 import com.dearfloral.module.customorders.dto.CustomDeliveryResponse;
 import com.dearfloral.module.customorders.dto.CustomDemoResponse;
 import com.dearfloral.module.customorders.dto.CustomOrderResponse;
@@ -89,6 +90,34 @@ public class AdminCustomOrderController {
         return ResponseEntity.ok(ApiResponse.success(
                 "CUSTOM_ORDER_FLOWER_EVALUATED",
                 "Flower input evaluated successfully.",
+                data
+        ));
+    }
+
+    @PatchMapping("/{orderId}/confirm-received-flower")
+    public ResponseEntity<ApiResponse<CustomOrderStatusResponse>> confirmReceivedFlower(
+            @AuthenticationPrincipal UserPrincipal principal,
+            @PathVariable Long orderId,
+            @Valid @ModelAttribute ConfirmReceivedFlowerRequest request
+    ) {
+        CustomOrderStatusResponse data = customOrderService.confirmReceivedFlower(orderId, request, principal.getUserId());
+        return ResponseEntity.ok(ApiResponse.success(
+                "CUSTOM_ORDER_RECEIVED_FLOWER_CONFIRMED",
+                "Received flower confirmed successfully.",
+                data
+        ));
+    }
+
+    @PatchMapping("/{orderId}/evaluate-received-flower")
+    public ResponseEntity<ApiResponse<EvaluateFlowerInputResponse>> evaluateReceivedFlower(
+            @AuthenticationPrincipal UserPrincipal principal,
+            @PathVariable Long orderId,
+            @Valid @RequestBody EvaluateFlowerInputRequest request
+    ) {
+        EvaluateFlowerInputResponse data = customOrderService.evaluateReceivedFlower(orderId, request, principal.getUserId());
+        return ResponseEntity.ok(ApiResponse.success(
+                "CUSTOM_ORDER_RECEIVED_FLOWER_EVALUATED",
+                "Received flower evaluated successfully.",
                 data
         ));
     }

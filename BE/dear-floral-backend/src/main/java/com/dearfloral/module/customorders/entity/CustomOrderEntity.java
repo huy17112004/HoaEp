@@ -79,6 +79,16 @@ public class CustomOrderEntity extends BaseEntity {
     @Column(name = "flower_evaluation_note", length = 500)
     private String flowerEvaluationNote;
 
+    @Column(name = "received_flower_image_url", length = 500)
+    private String receivedFlowerImageUrl;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "received_flower_evaluation_status", length = 50)
+    private FlowerEvaluationStatus receivedFlowerEvaluationStatus;
+
+    @Column(name = "received_flower_evaluation_note", length = 500)
+    private String receivedFlowerEvaluationNote;
+
     @Column(name = "rejection_reason", length = 1000)
     private String rejectionReason;
 

@@ -69,6 +69,7 @@ D:\HoaEpProject\BE\dear-floral-backend\src\main\java\com\dearfloral\module\categ
 D:\HoaEpProject\BE\dear-floral-backend\src\main\java\com\dearfloral\module\categories\service\CategoryService.java
 D:\HoaEpProject\BE\dear-floral-backend\src\main\java\com\dearfloral\module\customorders\controller\AdminCustomOrderController.java
 D:\HoaEpProject\BE\dear-floral-backend\src\main\java\com\dearfloral\module\customorders\controller\CustomOrderController.java
+D:\HoaEpProject\BE\dear-floral-backend\src\main\java\com\dearfloral\module\customorders\dto\ConfirmReceivedFlowerRequest.java
 D:\HoaEpProject\BE\dear-floral-backend\src\main\java\com\dearfloral\module\customorders\dto\CreateCustomDemoRequest.java
 D:\HoaEpProject\BE\dear-floral-backend\src\main\java\com\dearfloral\module\customorders\dto\CreateCustomOrderRequest.java
 D:\HoaEpProject\BE\dear-floral-backend\src\main\java\com\dearfloral\module\customorders\dto\CreateCustomOrderResponse.java
