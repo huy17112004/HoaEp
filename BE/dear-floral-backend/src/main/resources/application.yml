@@ -5,9 +5,9 @@ spring:
   application:
     name: dear-floral-backend
   datasource:
-    url: ${DB_URL:jdbc:postgresql://localhost:5432/d2}
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/dear_floral}
     username: ${DB_USERNAME:postgres}
-    password: ${DB_PASSWORD:123}
+    password: ${DB_PASSWORD:1}
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
