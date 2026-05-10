@@ -112,7 +112,9 @@ public class CustomOrderService {
         ALLOWED_TRANSITIONS.put(CustomOrderStatus.WAITING_REMAINING_PAYMENT,
                 EnumSet.of(CustomOrderStatus.WAITING_REMAINING_PAYMENT_VERIFICATION, CustomOrderStatus.CANCELED));
         ALLOWED_TRANSITIONS.put(CustomOrderStatus.WAITING_REMAINING_PAYMENT_VERIFICATION,
-                EnumSet.of(CustomOrderStatus.WAITING_REMAINING_PAYMENT, CustomOrderStatus.DELIVERING, CustomOrderStatus.CANCELED));
+                EnumSet.of(CustomOrderStatus.WAITING_REMAINING_PAYMENT, CustomOrderStatus.PREPARING_DELIVERY, CustomOrderStatus.CANCELED));
+        ALLOWED_TRANSITIONS.put(CustomOrderStatus.PREPARING_DELIVERY,
+                EnumSet.of(CustomOrderStatus.DELIVERING, CustomOrderStatus.CANCELED));
         ALLOWED_TRANSITIONS.put(CustomOrderStatus.DELIVERING,
                 EnumSet.of(CustomOrderStatus.COMPLETED, CustomOrderStatus.CANCELED));
         ALLOWED_TRANSITIONS.put(CustomOrderStatus.WAITING_REFUND_INFO, EnumSet.of(CustomOrderStatus.WAITING_REFUND, CustomOrderStatus.CANCELED));
@@ -796,7 +798,7 @@ public class CustomOrderService {
                     : request.note().trim());
             order.setPaymentStatus(PAYMENT_STATUS_PAID);
             order.setRemainingAmount(BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP));
-            order.setOrderStatus(CustomOrderStatus.DELIVERING);
+            order.setOrderStatus(CustomOrderStatus.PREPARING_DELIVERY);
         } else {
             payment.setPaymentStatus(PAYMENT_STATUS_FAILED);
             payment.setNote(trimToNull(request.note()) == null

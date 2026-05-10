@@ -70,7 +70,9 @@ public class ReportService {
                         CustomOrderStatus.WAITING_FLOWER_RECEIPT,
                         CustomOrderStatus.IN_PROGRESS,
                         CustomOrderStatus.WAITING_DEMO_FEEDBACK,
-                        CustomOrderStatus.WAITING_REMAINING_PAYMENT
+                        CustomOrderStatus.WAITING_REMAINING_PAYMENT,
+                        CustomOrderStatus.WAITING_REMAINING_PAYMENT_VERIFICATION,
+                        CustomOrderStatus.PREPARING_DELIVERY
                 ),
                 range.from(),
                 range.to()

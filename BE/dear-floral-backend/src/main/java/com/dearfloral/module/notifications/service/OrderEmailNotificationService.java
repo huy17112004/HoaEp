@@ -169,6 +169,7 @@ public class OrderEmailNotificationService {
             case "WAITING_DEMO_FEEDBACK" -> "Chờ phản hồi demo";
             case "WAITING_REMAINING_PAYMENT" -> "Chờ thanh toán phần còn lại";
             case "WAITING_REMAINING_PAYMENT_VERIFICATION" -> "Chờ xác nhận thanh toán phần còn lại";
+            case "PREPARING_DELIVERY" -> "Đang chuẩn bị hàng";
             case "DELIVERING" -> "Đang giao hàng";
             case "WAITING_REFUND_INFO" -> "Chờ thông tin hoàn tiền";
             case "WAITING_REFUND" -> "Chờ hoàn tiền";
