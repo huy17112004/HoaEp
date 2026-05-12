@@ -13,6 +13,7 @@ import com.dearfloral.module.customorders.dto.CustomOrderStatusResponse;
 import com.dearfloral.module.customorders.dto.DemoFeedbackRequest;
 import com.dearfloral.module.customorders.dto.DemoFeedbackResponse;
 import com.dearfloral.module.customorders.dto.RemainingPaymentResponse;
+import com.dearfloral.module.customorders.dto.SubmitFlowerShippingInfoRequest;
 import com.dearfloral.module.customorders.dto.SubmitRefundInfoRequest;
 import com.dearfloral.module.customorders.dto.UploadCustomFlowerImageResponse;
 import com.dearfloral.module.customorders.service.CustomOrderService;
@@ -115,6 +116,35 @@ public class CustomOrderController {
         return ResponseEntity.ok(ApiResponse.success(
                 "CUSTOM_ORDER_REFUND_INFO_SUBMITTED",
                 "Refund info submitted successfully.",
+                data
+        ));
+    }
+
+    @PostMapping("/{orderId}/flower-shipping")
+    public ResponseEntity<ApiResponse<CustomOrderStatusResponse>> submitFlowerShippingInfo(
+            @AuthenticationPrincipal UserPrincipal principal,
+            @PathVariable Long orderId,
+            @Valid @RequestBody SubmitFlowerShippingInfoRequest request
+    ) {
+        ensureCustomer(principal);
+        CustomOrderStatusResponse data = customOrderService.submitFlowerShippingInfo(orderId, request, principal.getUserId());
+        return ResponseEntity.ok(ApiResponse.success(
+                "CUSTOM_ORDER_FLOWER_SHIPPING_SUBMITTED",
+                "Flower shipping info submitted successfully.",
+                data
+        ));
+    }
+
+    @PostMapping("/{orderId}/confirm-received")
+    public ResponseEntity<ApiResponse<CustomOrderStatusResponse>> confirmReceived(
+            @AuthenticationPrincipal UserPrincipal principal,
+            @PathVariable Long orderId
+    ) {
+        ensureCustomer(principal);
+        CustomOrderStatusResponse data = customOrderService.confirmReceived(orderId, principal.getUserId());
+        return ResponseEntity.ok(ApiResponse.success(
+                "CUSTOM_ORDER_RECEIVED_CONFIRMED",
+                "Custom order received confirmed successfully.",
                 data
         ));
     }

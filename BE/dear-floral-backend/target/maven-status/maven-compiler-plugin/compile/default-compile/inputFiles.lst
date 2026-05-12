@@ -49,6 +49,7 @@ D:\HoaEpProject\BE\dear-floral-backend\src\main\java\com\dearfloral\module\avail
 D:\HoaEpProject\BE\dear-floral-backend\src\main\java\com\dearfloral\module\availableorders\dto\CreateAvailableOrderItemRequest.java
 D:\HoaEpProject\BE\dear-floral-backend\src\main\java\com\dearfloral\module\availableorders\dto\CreateAvailableOrderRequest.java
 D:\HoaEpProject\BE\dear-floral-backend\src\main\java\com\dearfloral\module\availableorders\dto\SubmitAvailableOrderRefundInfoRequest.java
+D:\HoaEpProject\BE\dear-floral-backend\src\main\java\com\dearfloral\module\availableorders\dto\SubmitAvailableOrderShippingInfoRequest.java
 D:\HoaEpProject\BE\dear-floral-backend\src\main\java\com\dearfloral\module\availableorders\dto\UpdateAvailableOrderStatusRequest.java
 D:\HoaEpProject\BE\dear-floral-backend\src\main\java\com\dearfloral\module\availableorders\dto\VerifyAvailableOrderPaymentRequest.java
 D:\HoaEpProject\BE\dear-floral-backend\src\main\java\com\dearfloral\module\availableorders\entity\AvailableOrderEntity.java
@@ -85,6 +86,8 @@ D:\HoaEpProject\BE\dear-floral-backend\src\main\java\com\dearfloral\module\custo
 D:\HoaEpProject\BE\dear-floral-backend\src\main\java\com\dearfloral\module\customorders\dto\EvaluateFlowerInputRequest.java
 D:\HoaEpProject\BE\dear-floral-backend\src\main\java\com\dearfloral\module\customorders\dto\EvaluateFlowerInputResponse.java
 D:\HoaEpProject\BE\dear-floral-backend\src\main\java\com\dearfloral\module\customorders\dto\RemainingPaymentResponse.java
+D:\HoaEpProject\BE\dear-floral-backend\src\main\java\com\dearfloral\module\customorders\dto\SubmitCustomOrderShippingInfoRequest.java
+D:\HoaEpProject\BE\dear-floral-backend\src\main\java\com\dearfloral\module\customorders\dto\SubmitFlowerShippingInfoRequest.java
 D:\HoaEpProject\BE\dear-floral-backend\src\main\java\com\dearfloral\module\customorders\dto\SubmitRefundInfoRequest.java
 D:\HoaEpProject\BE\dear-floral-backend\src\main\java\com\dearfloral\module\customorders\dto\UpdateCustomDeliveryRequest.java
 D:\HoaEpProject\BE\dear-floral-backend\src\main\java\com\dearfloral\module\customorders\dto\UpdateCustomOrderStatusRequest.java

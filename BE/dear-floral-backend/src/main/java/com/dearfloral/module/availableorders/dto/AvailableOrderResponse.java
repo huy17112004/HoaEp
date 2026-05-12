@@ -22,6 +22,8 @@ public record AvailableOrderResponse(
         String rejectionReason,
         String refundBankName,
         String refundAccountNumber,
-        String refundAccountName
+        String refundAccountName,
+        String shippingCarrier,
+        String shippingTrackingCode
 ) {
 }

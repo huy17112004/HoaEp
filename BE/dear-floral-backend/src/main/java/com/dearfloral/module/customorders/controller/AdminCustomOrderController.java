@@ -12,6 +12,7 @@ import com.dearfloral.module.customorders.dto.CustomOrderResponse;
 import com.dearfloral.module.customorders.dto.CustomOrderStatusResponse;
 import com.dearfloral.module.customorders.dto.EvaluateFlowerInputRequest;
 import com.dearfloral.module.customorders.dto.EvaluateFlowerInputResponse;
+import com.dearfloral.module.customorders.dto.SubmitCustomOrderShippingInfoRequest;
 import com.dearfloral.module.customorders.dto.UpdateCustomDeliveryRequest;
 import com.dearfloral.module.customorders.dto.UpdateCustomOrderStatusRequest;
 import com.dearfloral.module.customorders.dto.VerifyDepositRequest;
@@ -159,5 +160,19 @@ public class AdminCustomOrderController {
     ) {
         CustomOrderStatusResponse data = customOrderService.verifyRemainingPayment(orderId, request, principal.getUserId());
         return ResponseEntity.ok(ApiResponse.success("CUSTOM_ORDER_REMAINING_PAYMENT_VERIFIED", "Remaining payment verification processed successfully.", data));
+    }
+
+    @PatchMapping("/{orderId}/submit-shipping")
+    public ResponseEntity<ApiResponse<CustomOrderStatusResponse>> submitShippingInfo(
+            @AuthenticationPrincipal UserPrincipal principal,
+            @PathVariable Long orderId,
+            @Valid @RequestBody SubmitCustomOrderShippingInfoRequest request
+    ) {
+        CustomOrderStatusResponse data = customOrderService.submitShippingInfo(orderId, request, principal.getUserId());
+        return ResponseEntity.ok(ApiResponse.success(
+                "CUSTOM_ORDER_SHIPPING_SUBMITTED",
+                "Custom order shipping info submitted successfully.",
+                data
+        ));
     }
 }

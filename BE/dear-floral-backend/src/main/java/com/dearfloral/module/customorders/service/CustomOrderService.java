@@ -28,6 +28,8 @@ import com.dearfloral.module.customorders.dto.DemoFeedbackResponse;
 import com.dearfloral.module.customorders.dto.EvaluateFlowerInputRequest;
 import com.dearfloral.module.customorders.dto.EvaluateFlowerInputResponse;
 import com.dearfloral.module.customorders.dto.RemainingPaymentResponse;
+import com.dearfloral.module.customorders.dto.SubmitFlowerShippingInfoRequest;
+import com.dearfloral.module.customorders.dto.SubmitCustomOrderShippingInfoRequest;
 import com.dearfloral.module.customorders.dto.SubmitRefundInfoRequest;
 import com.dearfloral.module.customorders.dto.UpdateCustomDeliveryRequest;
 import com.dearfloral.module.customorders.dto.UpdateCustomOrderStatusRequest;
@@ -85,6 +87,7 @@ public class CustomOrderService {
     private static final BigDecimal DEFAULT_EXTRA_REVISION_FEE_RATE = new BigDecimal("0.1000");
     private static final int FREE_REVISION_LIMIT = 3;
     private static final int MAX_DEMO_IMAGES_PER_VERSION = 10;
+    private static final long DELIVERY_AUTO_COMPLETE_MINUTES = 5L;
     private static final Map<CustomOrderStatus, EnumSet<CustomOrderStatus>> ALLOWED_TRANSITIONS = new java.util.HashMap<>();
 
     static {
@@ -95,7 +98,9 @@ public class CustomOrderService {
         ALLOWED_TRANSITIONS.put(CustomOrderStatus.DEPOSITED,
                 EnumSet.of(CustomOrderStatus.WAITING_FLOWER_REVIEW, CustomOrderStatus.CANCELED));
         ALLOWED_TRANSITIONS.put(CustomOrderStatus.WAITING_FLOWER_REVIEW,
-                EnumSet.of(CustomOrderStatus.WAITING_FLOWER_RECEIPT, CustomOrderStatus.WAITING_REFUND_INFO, CustomOrderStatus.CANCELED));
+                EnumSet.of(CustomOrderStatus.WAITING_FLOWER_PREPARATION, CustomOrderStatus.WAITING_REFUND_INFO, CustomOrderStatus.CANCELED));
+        ALLOWED_TRANSITIONS.put(CustomOrderStatus.WAITING_FLOWER_PREPARATION,
+                EnumSet.of(CustomOrderStatus.WAITING_FLOWER_RECEIPT, CustomOrderStatus.CANCELED));
         ALLOWED_TRANSITIONS.put(CustomOrderStatus.WAITING_FLOWER_RECEIPT,
                 EnumSet.of(CustomOrderStatus.WAITING_RECEIVED_FLOWER_REVIEW, CustomOrderStatus.CANCELED));
         ALLOWED_TRANSITIONS.put(CustomOrderStatus.WAITING_RECEIVED_FLOWER_REVIEW,
@@ -116,7 +121,7 @@ public class CustomOrderService {
         ALLOWED_TRANSITIONS.put(CustomOrderStatus.PREPARING_DELIVERY,
                 EnumSet.of(CustomOrderStatus.DELIVERING, CustomOrderStatus.CANCELED));
         ALLOWED_TRANSITIONS.put(CustomOrderStatus.DELIVERING,
-                EnumSet.of(CustomOrderStatus.COMPLETED, CustomOrderStatus.CANCELED));
+                EnumSet.of(CustomOrderStatus.CANCELED));
         ALLOWED_TRANSITIONS.put(CustomOrderStatus.WAITING_REFUND_INFO, EnumSet.of(CustomOrderStatus.WAITING_REFUND, CustomOrderStatus.CANCELED));
         ALLOWED_TRANSITIONS.put(CustomOrderStatus.WAITING_REFUND, EnumSet.of(CustomOrderStatus.REFUNDED, CustomOrderStatus.CANCELED));
         ALLOWED_TRANSITIONS.put(CustomOrderStatus.REFUNDED, EnumSet.noneOf(CustomOrderStatus.class));
@@ -316,14 +321,17 @@ public class CustomOrderService {
         return new CustomOrderStatusResponse(order.getId(), order.getOrderCode(), order.getOrderStatus());
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public Page<CustomOrderResponse> getMyOrders(Long customerUserId, int page, int limit) {
         Pageable pageable = PageRequest.of(page, limit);
         Specification<CustomOrderEntity> spec = (root, query, cb) -> cb.equal(root.get("customerUser").get("id"), customerUserId);
-        return customOrderRepository.findAll(spec, pageable).map(this::toOrderResponse);
+        return customOrderRepository.findAll(spec, pageable).map(order -> {
+            autoCompleteIfDeliveringTimedOut(order);
+            return toOrderResponse(order);
+        });
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public Page<CustomOrderResponse> getAdminOrders(
             String keyword,
             CustomOrderStatus orderStatus,
@@ -349,12 +357,16 @@ public class CustomOrderService {
             }
             return cb.and(predicates.toArray(new Predicate[0]));
         };
-        return customOrderRepository.findAll(spec, pageable).map(this::toOrderResponse);
+        return customOrderRepository.findAll(spec, pageable).map(order -> {
+            autoCompleteIfDeliveringTimedOut(order);
+            return toOrderResponse(order);
+        });
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public CustomOrderResponse getOrderDetail(Long orderId, Long actorUserId, RoleCode actorRole) {
         CustomOrderEntity order = getOrderForActor(orderId, actorUserId, actorRole);
+        autoCompleteIfDeliveringTimedOut(order);
         return toOrderResponse(order);
     }
 
@@ -419,7 +431,7 @@ public class CustomOrderService {
         order.setFlowerEvaluationNote(trimToNull(request.evaluationNote()));
 
         if (request.evaluationStatus() == FlowerEvaluationStatus.PASS) {
-            nextStatus = CustomOrderStatus.WAITING_FLOWER_RECEIPT;
+            nextStatus = CustomOrderStatus.WAITING_FLOWER_PREPARATION;
         } else {
             if (trimToNull(request.evaluationNote()) == null) {
                 throw new BusinessException("EVALUATION_NOTE_REQUIRED", "Rejection reason is required when flower input fails.");
@@ -432,7 +444,7 @@ public class CustomOrderService {
         order.setOrderStatus(nextStatus);
         customOrderRepository.save(order);
         String statusReason = request.evaluationStatus() == FlowerEvaluationStatus.PASS
-                ? "Flower image passed. Waiting customer to ship flowers to store."
+                ? "Flower image passed. Waiting customer to prepare and submit flower shipping info."
                 : "Flower input evaluated and failed.";
         saveStatusHistory(order, fromStatus, nextStatus, actor, statusReason);
         auditLogService.logAction(
@@ -479,6 +491,30 @@ public class CustomOrderService {
         order.setOrderStatus(CustomOrderStatus.WAITING_RECEIVED_FLOWER_REVIEW);
         customOrderRepository.save(order);
         saveStatusHistory(order, fromStatus, order.getOrderStatus(), actor, "Store received flower and is waiting for actual flower review.");
+
+        return new CustomOrderStatusResponse(order.getId(), order.getOrderCode(), order.getOrderStatus());
+    }
+
+    @Transactional
+    public CustomOrderStatusResponse submitFlowerShippingInfo(
+            Long orderId,
+            SubmitFlowerShippingInfoRequest request,
+            Long customerUserId
+    ) {
+        CustomOrderEntity order = customOrderRepository.findByIdAndCustomerUserId(orderId, customerUserId)
+                .orElseThrow(() -> new NotFoundException("ORDER_NOT_FOUND", "Custom order not found."));
+        UserEntity customer = getUserOrThrow(customerUserId);
+
+        if (order.getOrderStatus() != CustomOrderStatus.WAITING_FLOWER_PREPARATION) {
+            throw new BusinessException("INVALID_ORDER_STATUS", "Order is not waiting for flower preparation.");
+        }
+
+        order.setFlowerShippingCarrier(request.carrier().trim());
+        order.setFlowerShippingTrackingCode(request.trackingCode().trim());
+        CustomOrderStatus fromStatus = order.getOrderStatus();
+        order.setOrderStatus(CustomOrderStatus.WAITING_FLOWER_RECEIPT);
+        customOrderRepository.save(order);
+        saveStatusHistory(order, fromStatus, order.getOrderStatus(), customer, "Customer submitted flower shipping info.");
 
         return new CustomOrderStatusResponse(order.getId(), order.getOrderCode(), order.getOrderStatus());
     }
@@ -544,6 +580,49 @@ public class CustomOrderService {
                 order.getReceivedFlowerEvaluationStatus(),
                 order.getOrderStatus()
         );
+    }
+
+    @Transactional
+    public CustomOrderStatusResponse submitShippingInfo(
+            Long orderId,
+            SubmitCustomOrderShippingInfoRequest request,
+            Long actorUserId
+    ) {
+        UserEntity actor = getUserOrThrow(actorUserId);
+        CustomOrderEntity order = customOrderRepository.findById(orderId)
+                .orElseThrow(() -> new NotFoundException("ORDER_NOT_FOUND", "Custom order not found."));
+
+        if (order.getOrderStatus() != CustomOrderStatus.PREPARING_DELIVERY) {
+            throw new BusinessException("INVALID_ORDER_STATUS", "Order is not in preparing delivery status.");
+        }
+
+        CustomOrderStatus fromStatus = order.getOrderStatus();
+        order.setShippingCarrier(request.shippingCarrier().trim());
+        order.setShippingTrackingCode(request.shippingTrackingCode().trim());
+        order.setShippingStartedAt(LocalDateTime.now());
+        order.setOrderStatus(CustomOrderStatus.DELIVERING);
+        customOrderRepository.save(order);
+        saveStatusHistory(order, fromStatus, order.getOrderStatus(), actor, "Admin submitted shipping info and started delivery.");
+
+        return new CustomOrderStatusResponse(order.getId(), order.getOrderCode(), order.getOrderStatus());
+    }
+
+    @Transactional
+    public CustomOrderStatusResponse confirmReceived(Long orderId, Long customerUserId) {
+        CustomOrderEntity order = customOrderRepository.findByIdAndCustomerUserId(orderId, customerUserId)
+                .orElseThrow(() -> new NotFoundException("ORDER_NOT_FOUND", "Custom order not found."));
+        UserEntity customer = getUserOrThrow(customerUserId);
+
+        if (order.getOrderStatus() != CustomOrderStatus.DELIVERING) {
+            throw new BusinessException("INVALID_ORDER_STATUS", "Order is not in delivering status.");
+        }
+
+        CustomOrderStatus fromStatus = order.getOrderStatus();
+        order.setOrderStatus(CustomOrderStatus.COMPLETED);
+        order.setCompletedAt(LocalDateTime.now());
+        customOrderRepository.save(order);
+        saveStatusHistory(order, fromStatus, order.getOrderStatus(), customer, "Customer confirmed received custom order.");
+        return new CustomOrderStatusResponse(order.getId(), order.getOrderCode(), order.getOrderStatus());
     }
 
     @Transactional
@@ -836,14 +915,7 @@ public class CustomOrderService {
                 delivery.setShippedTime(effectiveTime);
             }
             if ("DELIVERED".equals(normalizedStatus)) {
-                delivery.setDeliveredTime(effectiveTime);
-                CustomOrderStatus fromStatus = order.getOrderStatus();
-                if (fromStatus != CustomOrderStatus.COMPLETED) {
-                    order.setOrderStatus(CustomOrderStatus.COMPLETED);
-                    order.setCompletedAt(LocalDateTime.now());
-                    customOrderRepository.save(order);
-                    saveStatusHistory(order, fromStatus, CustomOrderStatus.COMPLETED, actor, "Delivery confirmed.");
-                }
+                throw new BusinessException("DELIVERY_CONFIRM_BY_CUSTOMER_ONLY", "Customer must confirm receiving order.");
             }
         }
 
@@ -953,9 +1025,13 @@ public class CustomOrderService {
                 order.getFlowerInputImageUrl(),
                 order.getFlowerEvaluationStatus(),
                 order.getFlowerEvaluationNote(),
+                order.getFlowerShippingCarrier(),
+                order.getFlowerShippingTrackingCode(),
                 order.getReceivedFlowerImageUrl(),
                 order.getReceivedFlowerEvaluationStatus(),
                 order.getReceivedFlowerEvaluationNote(),
+                order.getShippingCarrier(),
+                order.getShippingTrackingCode(),
                 order.getRejectionReason(),
                 order.getRefundBankName(),
                 order.getRefundAccountNumber(),
@@ -1125,6 +1201,24 @@ public class CustomOrderService {
                 order.getTotalAmount(),
                 reason
         );
+    }
+
+    private void autoCompleteIfDeliveringTimedOut(CustomOrderEntity order) {
+        if (order.getOrderStatus() != CustomOrderStatus.DELIVERING) {
+            return;
+        }
+        if (order.getShippingStartedAt() == null) {
+            return;
+        }
+        if (order.getShippingStartedAt().plusMinutes(DELIVERY_AUTO_COMPLETE_MINUTES).isAfter(LocalDateTime.now())) {
+            return;
+        }
+
+        CustomOrderStatus fromStatus = order.getOrderStatus();
+        order.setOrderStatus(CustomOrderStatus.COMPLETED);
+        order.setCompletedAt(LocalDateTime.now());
+        customOrderRepository.save(order);
+        saveStatusHistory(order, fromStatus, order.getOrderStatus(), order.getCustomerUser(), "Auto completed after 5 minutes in delivering status.");
     }
 
     private UserEntity getUserOrThrow(Long userId) {

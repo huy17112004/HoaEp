@@ -164,6 +164,7 @@ public class OrderEmailNotificationService {
             case "PENDING_DEPOSIT_VERIFICATION" -> "Chờ xác nhận đặt cọc";
             case "DEPOSITED" -> "Đã đặt cọc";
             case "WAITING_FLOWER_REVIEW" -> "Chờ đánh giá hoa";
+            case "WAITING_FLOWER_PREPARATION" -> "Khách hàng chuẩn bị hoa";
             case "WAITING_FLOWER_RECEIPT" -> "Chờ nhận hoa từ khách hàng";
             case "IN_PROGRESS" -> "Đang thực hiện";
             case "WAITING_DEMO_FEEDBACK" -> "Chờ phản hồi demo";

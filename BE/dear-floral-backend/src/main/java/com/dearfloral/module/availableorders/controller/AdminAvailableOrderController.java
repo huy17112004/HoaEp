@@ -6,6 +6,7 @@ import com.dearfloral.common.enums.AvailableOrderStatus;
 import com.dearfloral.config.security.UserPrincipal;
 import com.dearfloral.module.availableorders.dto.AvailableOrderResponse;
 import com.dearfloral.module.availableorders.dto.AvailableOrderStatusResponse;
+import com.dearfloral.module.availableorders.dto.SubmitAvailableOrderShippingInfoRequest;
 import com.dearfloral.module.availableorders.dto.UpdateAvailableOrderStatusRequest;
 import com.dearfloral.module.availableorders.dto.VerifyAvailableOrderPaymentRequest;
 import com.dearfloral.module.availableorders.service.AvailableOrderService;
@@ -86,6 +87,20 @@ public class AdminAvailableOrderController {
         return ResponseEntity.ok(ApiResponse.success(
                 "AVAILABLE_ORDER_REFUND_CONFIRMED",
                 "Available order refund confirmed successfully.",
+                data
+        ));
+    }
+
+    @PatchMapping("/{orderId}/submit-shipping")
+    public ResponseEntity<ApiResponse<AvailableOrderStatusResponse>> submitShippingInfo(
+            @AuthenticationPrincipal UserPrincipal principal,
+            @PathVariable Long orderId,
+            @Valid @RequestBody SubmitAvailableOrderShippingInfoRequest request
+    ) {
+        AvailableOrderStatusResponse data = availableOrderService.submitShippingInfo(orderId, request, principal.getUserId());
+        return ResponseEntity.ok(ApiResponse.success(
+                "AVAILABLE_ORDER_SHIPPING_SUBMITTED",
+                "Available order shipping info submitted successfully.",
                 data
         ));
     }

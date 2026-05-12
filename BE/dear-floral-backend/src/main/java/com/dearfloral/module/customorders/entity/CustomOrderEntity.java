@@ -79,6 +79,12 @@ public class CustomOrderEntity extends BaseEntity {
     @Column(name = "flower_evaluation_note", length = 500)
     private String flowerEvaluationNote;
 
+    @Column(name = "flower_shipping_carrier", length = 150)
+    private String flowerShippingCarrier;
+
+    @Column(name = "flower_shipping_tracking_code", length = 100)
+    private String flowerShippingTrackingCode;
+
     @Column(name = "received_flower_image_url", length = 500)
     private String receivedFlowerImageUrl;
 
@@ -88,6 +94,15 @@ public class CustomOrderEntity extends BaseEntity {
 
     @Column(name = "received_flower_evaluation_note", length = 500)
     private String receivedFlowerEvaluationNote;
+
+    @Column(name = "shipping_carrier", length = 150)
+    private String shippingCarrier;
+
+    @Column(name = "shipping_tracking_code", length = 100)
+    private String shippingTrackingCode;
+
+    @Column(name = "shipping_started_at")
+    private LocalDateTime shippingStartedAt;
 
     @Column(name = "rejection_reason", length = 1000)
     private String rejectionReason;

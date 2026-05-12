@@ -15,6 +15,7 @@ import com.dearfloral.module.availableorders.dto.AvailableOrderStatusResponse;
 import com.dearfloral.module.availableorders.dto.ConfirmAvailableOrderPaymentRequest;
 import com.dearfloral.module.availableorders.dto.CreateAvailableOrderItemRequest;
 import com.dearfloral.module.availableorders.dto.CreateAvailableOrderRequest;
+import com.dearfloral.module.availableorders.dto.SubmitAvailableOrderShippingInfoRequest;
 import com.dearfloral.module.availableorders.dto.SubmitAvailableOrderRefundInfoRequest;
 import com.dearfloral.module.availableorders.dto.UpdateAvailableOrderStatusRequest;
 import com.dearfloral.module.availableorders.dto.VerifyAvailableOrderPaymentRequest;
@@ -60,6 +61,7 @@ public class AvailableOrderService {
     private static final String PAYMENT_STATUS_PAID = "PAID";
     private static final String PAYMENT_STATUS_FAILED = "FAILED";
     private static final String PAYMENT_STATUS_REFUNDED = "REFUNDED";
+    private static final long DELIVERY_AUTO_COMPLETE_MINUTES = 5L;
     private static final Map<AvailableOrderStatus, EnumSet<AvailableOrderStatus>> ALLOWED_TRANSITIONS = Map.of(
             AvailableOrderStatus.RECEIVED, EnumSet.of(
                     AvailableOrderStatus.PROCESSING,
@@ -67,7 +69,7 @@ public class AvailableOrderService {
                     AvailableOrderStatus.WAITING_REFUND_INFO
             ),
             AvailableOrderStatus.PROCESSING, EnumSet.of(AvailableOrderStatus.SHIPPING, AvailableOrderStatus.CANCELED),
-            AvailableOrderStatus.SHIPPING, EnumSet.of(AvailableOrderStatus.COMPLETED),
+            AvailableOrderStatus.SHIPPING, EnumSet.of(AvailableOrderStatus.CANCELED),
             AvailableOrderStatus.WAITING_REFUND_INFO, EnumSet.of(AvailableOrderStatus.WAITING_REFUND, AvailableOrderStatus.CANCELED),
             AvailableOrderStatus.WAITING_REFUND, EnumSet.of(AvailableOrderStatus.REFUNDED, AvailableOrderStatus.CANCELED),
             AvailableOrderStatus.REFUNDED, EnumSet.noneOf(AvailableOrderStatus.class),
@@ -323,6 +325,68 @@ public class AvailableOrderService {
     }
 
     @Transactional
+    public AvailableOrderStatusResponse submitShippingInfo(
+            Long orderId,
+            SubmitAvailableOrderShippingInfoRequest request,
+            Long actorUserId
+    ) {
+        AvailableOrderEntity order = availableOrderRepository.findById(orderId)
+                .orElseThrow(() -> new NotFoundException("ORDER_NOT_FOUND", "Order not found."));
+        UserEntity actor = getUserOrThrow(actorUserId);
+
+        if (order.getOrderStatus() != AvailableOrderStatus.PROCESSING) {
+            throw new BusinessException("INVALID_ORDER_STATUS", "Order is not in processing status.");
+        }
+
+        AvailableOrderStatus fromStatus = order.getOrderStatus();
+        order.setShippingCarrier(request.shippingCarrier().trim());
+        order.setShippingTrackingCode(request.shippingTrackingCode().trim());
+        order.setShippingStartedAt(LocalDateTime.now());
+        order.setOrderStatus(AvailableOrderStatus.SHIPPING);
+        availableOrderRepository.save(order);
+
+        AvailableOrderStatusHistoryEntity statusHistory = new AvailableOrderStatusHistoryEntity();
+        statusHistory.setAvailableOrder(order);
+        statusHistory.setFromStatus(fromStatus);
+        statusHistory.setToStatus(order.getOrderStatus());
+        statusHistory.setChangedBy(actor);
+        statusHistory.setChangedAt(LocalDateTime.now());
+        statusHistory.setReason("Admin submitted shipping info and started shipping.");
+        availableOrderStatusHistoryRepository.save(statusHistory);
+
+        notifyAvailableOrderStep(order, fromStatus, order.getOrderStatus(), order.getPaymentStatus(), "Shipping info submitted.");
+        return new AvailableOrderStatusResponse(order.getId(), order.getOrderCode(), order.getOrderStatus());
+    }
+
+    @Transactional
+    public AvailableOrderStatusResponse confirmReceived(Long orderId, Long customerUserId) {
+        AvailableOrderEntity order = availableOrderRepository.findByIdAndCustomerUserId(orderId, customerUserId)
+                .orElseThrow(() -> new NotFoundException("ORDER_NOT_FOUND", "Order not found."));
+        UserEntity customer = getUserOrThrow(customerUserId);
+
+        if (order.getOrderStatus() != AvailableOrderStatus.SHIPPING) {
+            throw new BusinessException("INVALID_ORDER_STATUS", "Order is not in shipping status.");
+        }
+
+        AvailableOrderStatus fromStatus = order.getOrderStatus();
+        order.setOrderStatus(AvailableOrderStatus.COMPLETED);
+        order.setCompletedAt(LocalDateTime.now());
+        availableOrderRepository.save(order);
+
+        AvailableOrderStatusHistoryEntity statusHistory = new AvailableOrderStatusHistoryEntity();
+        statusHistory.setAvailableOrder(order);
+        statusHistory.setFromStatus(fromStatus);
+        statusHistory.setToStatus(order.getOrderStatus());
+        statusHistory.setChangedBy(customer);
+        statusHistory.setChangedAt(LocalDateTime.now());
+        statusHistory.setReason("Customer confirmed received order.");
+        availableOrderStatusHistoryRepository.save(statusHistory);
+
+        notifyAvailableOrderStep(order, fromStatus, order.getOrderStatus(), order.getPaymentStatus(), "Customer confirmed received order.");
+        return new AvailableOrderStatusResponse(order.getId(), order.getOrderCode(), order.getOrderStatus());
+    }
+
+    @Transactional
     public AvailableOrderStatusResponse confirmPayment(
             Long orderId,
             ConfirmAvailableOrderPaymentRequest request,
@@ -422,22 +486,26 @@ public class AvailableOrderService {
         return toOrderResponse(order, items);
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public AvailableOrderResponse getOrderDetail(Long orderId, Long actorUserId, RoleCode actorRole) {
         AvailableOrderEntity order = getOrderForActor(orderId, actorUserId, actorRole);
+        autoCompleteIfShippingTimedOut(order);
         List<AvailableOrderItemEntity> items = availableOrderItemRepository.findByAvailableOrderId(order.getId());
         return toOrderResponse(order, items);
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public Page<AvailableOrderResponse> getMyOrders(Long customerUserId, int page, int limit) {
         Pageable pageable = PageRequest.of(page, limit);
         Specification<AvailableOrderEntity> spec = (root, query, cb) -> cb.equal(root.get("customerUser").get("id"), customerUserId);
         return availableOrderRepository.findAll(spec, pageable)
-                .map(order -> toOrderResponse(order, availableOrderItemRepository.findByAvailableOrderId(order.getId())));
+                .map(order -> {
+                    autoCompleteIfShippingTimedOut(order);
+                    return toOrderResponse(order, availableOrderItemRepository.findByAvailableOrderId(order.getId()));
+                });
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public Page<AvailableOrderResponse> getAdminOrders(
             String keyword,
             AvailableOrderStatus orderStatus,
@@ -464,7 +532,10 @@ public class AvailableOrderService {
             return cb.and(predicates.toArray(new Predicate[0]));
         };
         return availableOrderRepository.findAll(spec, pageable)
-                .map(order -> toOrderResponse(order, availableOrderItemRepository.findByAvailableOrderId(order.getId())));
+                .map(order -> {
+                    autoCompleteIfShippingTimedOut(order);
+                    return toOrderResponse(order, availableOrderItemRepository.findByAvailableOrderId(order.getId()));
+                });
     }
 
     public PageMeta toPageMeta(Page<?> pageData) {
@@ -533,7 +604,9 @@ public class AvailableOrderService {
                 order.getRejectionReason(),
                 order.getRefundBankName(),
                 order.getRefundAccountNumber(),
-                order.getRefundAccountName()
+                order.getRefundAccountName(),
+                order.getShippingCarrier(),
+                order.getShippingTrackingCode()
         );
     }
 
@@ -560,6 +633,33 @@ public class AvailableOrderService {
                 order.getTotalAmount(),
                 reason
         );
+    }
+
+    private void autoCompleteIfShippingTimedOut(AvailableOrderEntity order) {
+        if (order.getOrderStatus() != AvailableOrderStatus.SHIPPING) {
+            return;
+        }
+        if (order.getShippingStartedAt() == null) {
+            return;
+        }
+        if (order.getShippingStartedAt().plusMinutes(DELIVERY_AUTO_COMPLETE_MINUTES).isAfter(LocalDateTime.now())) {
+            return;
+        }
+
+        AvailableOrderStatus fromStatus = order.getOrderStatus();
+        order.setOrderStatus(AvailableOrderStatus.COMPLETED);
+        order.setCompletedAt(LocalDateTime.now());
+        availableOrderRepository.save(order);
+
+        AvailableOrderStatusHistoryEntity statusHistory = new AvailableOrderStatusHistoryEntity();
+        statusHistory.setAvailableOrder(order);
+        statusHistory.setFromStatus(fromStatus);
+        statusHistory.setToStatus(order.getOrderStatus());
+        statusHistory.setChangedBy(order.getCustomerUser());
+        statusHistory.setChangedAt(LocalDateTime.now());
+        statusHistory.setReason("Auto completed after 5 minutes in shipping status.");
+        availableOrderStatusHistoryRepository.save(statusHistory);
+        notifyAvailableOrderStep(order, fromStatus, order.getOrderStatus(), order.getPaymentStatus(), "Auto completed after 5 minutes in shipping status.");
     }
 
     private record PendingOrderItem(

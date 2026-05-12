@@ -75,6 +75,15 @@ public class AvailableOrderEntity extends BaseEntity {
     @Column(name = "refund_account_name", length = 150)
     private String refundAccountName;
 
+    @Column(name = "shipping_carrier", length = 150)
+    private String shippingCarrier;
+
+    @Column(name = "shipping_tracking_code", length = 100)
+    private String shippingTrackingCode;
+
+    @Column(name = "shipping_started_at")
+    private LocalDateTime shippingStartedAt;
+
     @Column(name = "refund_requested_at")
     private LocalDateTime refundRequestedAt;
 

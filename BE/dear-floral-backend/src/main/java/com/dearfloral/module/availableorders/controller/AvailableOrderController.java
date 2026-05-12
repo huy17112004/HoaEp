@@ -95,6 +95,16 @@ public class AvailableOrderController {
         return ResponseEntity.ok(ApiResponse.success("AVAILABLE_ORDER_REFUND_INFO_SUBMITTED", "Refund info submitted successfully.", data));
     }
 
+    @PostMapping("/{orderId}/confirm-received")
+    public ResponseEntity<ApiResponse<AvailableOrderStatusResponse>> confirmReceived(
+            @AuthenticationPrincipal UserPrincipal principal,
+            @PathVariable Long orderId
+    ) {
+        ensureCustomer(principal);
+        AvailableOrderStatusResponse data = availableOrderService.confirmReceived(orderId, principal.getUserId());
+        return ResponseEntity.ok(ApiResponse.success("AVAILABLE_ORDER_RECEIVED_CONFIRMED", "Order received confirmed successfully.", data));
+    }
+
     private void ensureCustomer(UserPrincipal principal) {
         if (!RoleCode.CUSTOMER.name().equals(principal.getRole())) {
             throw new AccessDeniedException("Customer role is required.");
