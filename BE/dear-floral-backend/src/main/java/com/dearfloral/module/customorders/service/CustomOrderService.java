@@ -84,7 +84,7 @@ public class CustomOrderService {
     private static final String PAYMENT_STATUS_FAILED = "FAILED";
     private static final String PAYMENT_STATUS_REFUNDED = "REFUNDED";
     private static final BigDecimal DEFAULT_DEPOSIT_RATE = new BigDecimal("0.50");
-    private static final BigDecimal DEFAULT_EXTRA_REVISION_FEE_RATE = new BigDecimal("0.1000");
+    private static final BigDecimal DEFAULT_EXTRA_REVISION_FEE_RATE = new BigDecimal("0.0500");
     private static final int FREE_REVISION_LIMIT = 3;
     private static final int MAX_DEMO_IMAGES_PER_VERSION = 10;
     private static final long DELIVERY_AUTO_COMPLETE_MINUTES = 5L;
@@ -658,6 +658,11 @@ public class CustomOrderService {
         CustomDemoEntity savedDemo = customDemoRepository.save(demo);
 
         CustomOrderStatus fromStatus = order.getOrderStatus();
+        // Charge extra revision fee immediately when admin uploads demo version 4+.
+        if (nextVersion > FREE_REVISION_LIMIT) {
+            applyExtraRevisionFee(order);
+        }
+        order.setDemoRevisionCount(nextVersion);
         order.setOrderStatus(CustomOrderStatus.WAITING_DEMO_FEEDBACK);
         customOrderRepository.save(order);
         saveStatusHistory(order, fromStatus, CustomOrderStatus.WAITING_DEMO_FEEDBACK, actor, "Demo uploaded.");
@@ -724,11 +729,6 @@ public class CustomOrderService {
             order.setOrderStatus(CustomOrderStatus.WAITING_REMAINING_PAYMENT);
         } else {
             demo.setCustomerResponseStatus(DemoResponseStatus.REQUEST_REVISION);
-            int newRevisionCount = order.getDemoRevisionCount() + 1;
-            order.setDemoRevisionCount(newRevisionCount);
-            if (newRevisionCount > FREE_REVISION_LIMIT) {
-                applyExtraRevisionFee(order);
-            }
             order.setOrderStatus(CustomOrderStatus.IN_PROGRESS);
         }
 
@@ -1133,10 +1133,12 @@ public class CustomOrderService {
     }
 
     private void applyExtraRevisionFee(CustomOrderEntity order) {
-        BigDecimal rate = order.getExtraRevisionFeeRate() == null
-                ? DEFAULT_EXTRA_REVISION_FEE_RATE
-                : order.getExtraRevisionFeeRate();
-        BigDecimal extraFee = order.getTotalAmount().multiply(rate).setScale(2, RoundingMode.HALF_UP);
+        // Root-fix: force 5% and always calculate from original order base (deposit*2),
+        // not from current totalAmount to avoid compounding fee.
+        BigDecimal baseOrderAmount = order.getDepositAmount()
+                .divide(DEFAULT_DEPOSIT_RATE, 2, RoundingMode.HALF_UP);
+        BigDecimal extraFee = baseOrderAmount.multiply(DEFAULT_EXTRA_REVISION_FEE_RATE).setScale(2, RoundingMode.HALF_UP);
+        order.setExtraRevisionFeeRate(DEFAULT_EXTRA_REVISION_FEE_RATE);
         order.setTotalAmount(order.getTotalAmount().add(extraFee));
         order.setRemainingAmount(order.getRemainingAmount().add(extraFee));
     }
